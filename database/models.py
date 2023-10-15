@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Boolean, Enum, Integer, String, DateTime, ForeignKey, Float
+from sqlalchemy import Column, Boolean, Enum, Integer, String, DateTime, ForeignKey, Float, BigInteger
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship
 from database.enums import UserRole, AdvertisementStatus, EntranceType, ViewType, RoomType, ToiletType
@@ -12,7 +12,7 @@ Base = declarative_base()
 class User(AsyncAttrs, Base):
     __tablename__ = 'user'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(BigInteger, primary_key=True)
     username = Column(String)
     first_name = Column(String)
     last_name = Column(String)
