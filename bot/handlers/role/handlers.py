@@ -27,6 +27,8 @@ async def start_give_role(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def save_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.message.text
+    if username.startswith('@'):
+        username = username[1:]
 
     try:
         session = context.session
@@ -35,7 +37,7 @@ async def save_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not await user_service.get_user_by_username(session, username):
         await update.message.reply_text(
-            'Пользователь не найден',
+            'Пользователь не найден. Отменяю выдачу роли.',
         )
         return ConversationHandler.END
 
