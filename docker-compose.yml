@@ -1,0 +1,74 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    container_name: postgres
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    ports:
+      - "5431:5432"
+    env_file:
+      - .env
+#  redis:
+#    image: redis:alpine
+#    container_name: wb_redis
+#    command: redis-server --appendonly yes --replica-read-only no
+#    restart: unless-stopped
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      db_url: ${db_url}
+    container_name: bot
+    restart: unless-stopped
+    command: sh -c "python main.py"
+    volumes:
+      - ./logs:/code/logs
+      - ./migrations/versions:/code/migrations/versions
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    env_file:
+      - .env
+    depends_on:
+      - db
+#  celery:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    container_name: wb_celery
+#    restart: unless-stopped
+#    command: celery -A wb_analytics worker --loglevel=DEBUG -f ./logs/wb_celery.logs
+#    volumes:
+#      - ./wb_analytics:/code
+#      - /etc/localtime:/etc/localtime:ro
+#      - /etc/timezone:/etc/timezone:ro
+#    env_file:
+#      - ./wb_analytics/.env
+#    depends_on:
+#      - redis
+#      - web
+#  celery-beat:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    container_name: wb_beat
+#    restart: unless-stopped
+#    command: celery -A wb_analytics beat -l info -f ./logs/wb_celery_beat.logs --scheduler django_celery_beat.schedulers.DatabaseScheduler
+#    volumes:
+#      - ./wb_analytics:/code
+#      - /etc/localtime:/etc/localtime:ro
+#      - /etc/timezone:/etc/timezone:ro
+#    env_file:
+#      - ./wb_analytics/.env
+#    depends_on:
+#      - redis
+#      - celery
+#      - web
+
+volumes:
+  postgres_data:
