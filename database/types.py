@@ -13,9 +13,9 @@ class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, use_enum_values=True, arbitrary_types_allowed=True)
 
     id: int
-    username: str
-    first_name: str
-    last_name: str
+    username: Optional[str]
+    first_name: Optional[str]
+    last_name: Optional[str]
     role: UserRole
 
 
@@ -93,19 +93,19 @@ class AdvertisementResponse(BaseModel):
     @field_validator('added_by', mode='before')
     def check_added_by(cls, v, values):
         if isinstance(v, User):
-            return UserResponse.model_validate(v)
+            return UserResponse.model_validate(v, from_attributes=True)
         return v
 
     @field_validator('viewed_by', mode='before')
     def check_viewed_by(cls, v, values):
         if isinstance(v, User):
-            return UserResponse.model_validate(v)
+            return UserResponse.model_validate(v, from_attributes=True)
         return v
 
     @field_validator('assigned_to', mode='before')
     def check_assigned_to(cls, v, values):
         if isinstance(v, User):
-            return UserResponse.model_validate(v)
+            return UserResponse.model_validate(v, from_attributes=True)
         return v
 
 

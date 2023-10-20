@@ -6,13 +6,15 @@ from telegram.ext import (
     CommandHandler,
     TypeHandler,
     PicklePersistence,
+    PersistenceInput,
     filters,
 )
-from telegram import Update
+from telegram import Update, BotCommand
 
 from bot.middlewares import Middleware, SessionMiddleware, UserMiddleware
 
 from bot.handlers.onboarding import handlers as onboarding_handlers
+from bot.handlers.onboarding.static_text import ADD_ROOM_KEYBOARD_TEXT, STATISTICS_KEYBOARD_TEXT
 from bot.handlers.rooms import handlers as rooms_handlers
 from bot.handlers.role import handlers as role_handlers
 from bot.config import config
@@ -37,6 +39,17 @@ logger = logging.getLogger(__name__)
 
 
 def main():
+    async def post_init(application: Application) -> None:
+        await application.bot.set_my_commands(
+            [
+                ('start', 'Запустить бота'),
+                ('add_room', 'Добавить квартиру'),
+                ('set_role', 'Дать роль'),
+                ('get_roles', 'Посмотреть пользователей с ролью'),
+                ('cancel', 'Отменить')
+            ]
+        )
+
     engine = create_async_engine(config.db_url.get_secret_value(), echo=True)
     session_maker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     middleware = Middleware(
@@ -48,8 +61,9 @@ def main():
 
     TOKEN = config.bot_token.get_secret_value()
 
-    persistence = PicklePersistence('bot/persistence.pickle')
-    app = Application.builder().token(TOKEN).persistence(persistence).build()
+    persistence_input = PersistenceInput(bot_data=True, user_data=True, chat_data=False, callback_data=False)
+    persistence = PicklePersistence('bot/persistence.pickle', store_data=persistence_input, update_interval=1)
+    app = Application.builder().token(TOKEN).persistence(persistence).post_init(post_init).build()
 
     app.add_handler(TypeHandler(Update, middleware.on_update), group=-1)
 
@@ -66,9 +80,8 @@ def main():
             ],
         },
         fallbacks=[CommandHandler('cancel', rooms_handlers.cancel_plan_adding)],
-        map_to_parent={
-            ConversationHandler.END: rooms_handlers.AddRoomDialogStates.ADDITIONAL_INFO,
-        },
+        persistent=True,
+        name='plan_handler',
     )
 
     phone_handler = ConversationHandler(
@@ -82,9 +95,8 @@ def main():
             ],
         },
         fallbacks=[CommandHandler('cancel', rooms_handlers.cancel_phone_adding)],
-        map_to_parent={
-            ConversationHandler.END: rooms_handlers.AddRoomDialogStates.ADDITIONAL_INFO,
-        },
+        persistent=True,
+        name='phone_handler',
     )
 
     info_handler = ConversationHandler(
@@ -154,30 +166,40 @@ def main():
             ],
         },
         fallbacks=[CommandHandler('cancel', rooms_handlers.cancel_info_adding)],
-        map_to_parent={
-            ConversationHandler.END: rooms_handlers.AddRoomDialogStates.ADDITIONAL_INFO,
-        },
+        persistent=True,
+        name='info_handler',
     )
 
-    app.add_handler(
-        ConversationHandler(
-            entry_points=[CommandHandler('add_room', rooms_handlers.start_adding_room)],
-            states={
-                rooms_handlers.AddRoomDialogStates.ROOM_URL: [
-                    MessageHandler(
-                        filters=filters.TEXT & ~filters.Command(),
-                        callback=rooms_handlers.add_room_url,
-                    ),
-                ],
-                rooms_handlers.AddRoomDialogStates.ADDITIONAL_INFO: [
-                    phone_handler,
-                    plan_handler,
-                    info_handler,
-                    CallbackQueryHandler(rooms_handlers.send, pattern=r'send_.*'),
-                ],
-            },
-            fallbacks=[CommandHandler('cancel', rooms_handlers.cancel_room_adding)],
-        ),
+    add_room_handler = ConversationHandler(
+        entry_points=[
+            CommandHandler('add_room', rooms_handlers.start_adding_room),
+            MessageHandler(
+                filters=filters.Text(ADD_ROOM_KEYBOARD_TEXT),
+                callback=rooms_handlers.start_adding_room
+            )
+        ],
+        states={
+            rooms_handlers.AddRoomDialogStates.ROOM_URL: [
+                MessageHandler(
+                    filters=filters.TEXT & ~filters.Command(),
+                    callback=rooms_handlers.add_room_url,
+                ),
+            ],
+        },
+        fallbacks=[CommandHandler('cancel', rooms_handlers.cancel_room_adding)],
+        persistent=True,
+        name='add_room_handler',
+    )
+
+    app.add_handlers(
+        [
+            add_room_handler,
+            phone_handler,
+            plan_handler,
+            info_handler,
+            CallbackQueryHandler(rooms_handlers.send, pattern=r'send_.*'),
+            CallbackQueryHandler(rooms_handlers.show_data_from_ad, pattern=r'show_data_.*'),
+        ]
     )
 
     app.add_handler(
@@ -195,6 +217,8 @@ def main():
                 ],
             },
             fallbacks=[CommandHandler('cancel', role_handlers.cancel_role_adding)],
+            persistent=True,
+            name='set_role_handler',
         )
     )
 
@@ -203,7 +227,16 @@ def main():
         pattern=r'review_.*',
     ))
 
+    app.add_handler(
+        CommandHandler(
+            'get_roles',
+            role_handlers.get_users_with_role,
+        )
+    )
+
     app.add_handler(TypeHandler(Update, middleware.after_update), group=1)
+
+    app.post_init
 
     app.run_polling()
 

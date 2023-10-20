@@ -7,3 +7,6 @@ START_TEXT_2 = """
 (ФИО) 
 (тел)
 """
+STATISTICS_KEYBOARD_TEXT = 'Статистика📈'
+ADD_ROOM_KEYBOARD_TEXT = 'Добавить комнату➕'
+CANCEL_KEYBOARD_TEXT = 'Отмена❌'

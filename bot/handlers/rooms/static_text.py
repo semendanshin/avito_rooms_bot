@@ -1,18 +1,26 @@
 FIRST_ROOM_TEMPLATE = """
-{address}, кв{flat_number} (КН{cadastral_number})
+{address}, кв{flat_number} (КН{cadastral_number}) {is_historical}
 {price}тр({price_per_meter}тр/м2)
 эт-{flour}{room_under}/{flours_in_building}-{elevator} {entrance_type} {windows_type} {toilet_type}
 S-{flat_area}м2({living_area}={living_area_percent}%) h={flat_height}
+
 {rooms_info}
+
 {contact_phone} {contact_status}-{contact_name}
 
 <a href="{url}">АВИТО</a>
 """
 
+DATA_FROM_ADVERTISEMENT_TEMPLATE = """
+Комната {room_area} м² в {number_of_rooms_in_flat}-к. кв, {flour}/{flours_in_building} эт.
+{address}
+{price} тр
+"""
+
 PARSED_ROOM_TEMPLATE = """
 <b>Комната {room_area} м² в {number_of_rooms_in_flat}-к. кв, {flour}/{flours_in_building} эт.</b>
-<b>Цена:</b> {price} ₽
-<b>Адрес:</b> {address}
+{address}
+{price} тр
 """
 CONTACT_INFO_TEMPLATE = """
 {contact_phone} {contact_status}-{contact_name}
@@ -31,6 +39,15 @@ ADDITIONAL_INFO = """
 """
 AVITO_URL_TEMPLATE = """
 <a href="{url}">АВИТО</a>
+"""
+DISPATCHER_USERNAME_TEMPLATE = """
+Добавлено пользователем @{username}
+"""
+ADMIN_USERNAME_TEMPLATE = """
+Оценено пользователем @{username}
+"""
+AGENT_USERNAME_TEMPLATE = """
+Отсмотрено пользователем @{username}
 """
 # SECOND_ROOM_TEMPLATE = """
 # <b>Комната {room_area} м² в {number_of_rooms_in_flat}-к. кв, {flour}{room_under}/{flours_in_building} эт.</b>

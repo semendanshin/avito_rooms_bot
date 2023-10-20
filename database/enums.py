@@ -22,16 +22,19 @@ class RoomType(pyEnum):
 
 
 class ToiletType(pyEnum):
-    # "Санузел в квартире какой? и кнопки вариантов [Совмещенный] [Раздельный] [Без ванны] [Душ на кухне]"
-#  - вывод СУ-Р или СУ-С или СУ-БВ или СУ-ДК
     COMBINED = 'СУ-Р'
     SEPARATE = 'СУ-С'
     WITHOUTBATH = 'СУ-БВ'
     SHOWERONKITCHEN = 'СУ-ДК'
 
 
-# "Вход в парадную откуда? и кнопки вариантов [С улицы] [Со двора] [В арке] [Отдельный]"
-#  - вывод Вх-Ул или Вх-Дв или Вх-Ар или Вх-Отд
+class ToiletTypeHumanReadable(pyEnum):
+    COMBINED = 'Совмещенный'
+    SEPARATE = 'Раздельный'
+    WITHOUTBATH = 'Без ванны'
+    SHOWERONKITCHEN = 'Душ на кухне'
+
+
 class EntranceType(pyEnum):
     STREET = 'Вх-Ул'
     YARD = 'Вх-Дв'
@@ -39,9 +42,20 @@ class EntranceType(pyEnum):
     SEPARATE = 'Вх-Отд'
 
 
-# "Окна комнаты выходят куда? и кнопки вариантов [На улицу] [Во двор] [На воду или парк/лес]"
-#  - вывод Ок-Ул или Ок-Дв или Ок-Вид
+class EntranceTypeHumanReadable(pyEnum):
+    STREET = 'Вход с улицы'
+    YARD = 'Вход с двора'
+    ARCH = 'Вход через арку'
+    SEPARATE = 'Отдельный вход'
+
+
 class ViewType(pyEnum):
     STREET = 'Ок-Ул'
     YARD = 'Ок-Дв'
     PARK = 'Ок-Вид'
+
+
+class ViewTypeHumanReadable(pyEnum):
+    STREET = 'Вид на улицу'
+    YARD = 'Вид во двор'
+    PARK = 'Вид на парк'

@@ -1,7 +1,7 @@
 from enum import Enum
 from database.types import DataToGather
 from .static_text import (FIRST_ROOM_TEMPLATE, PARSED_ROOM_TEMPLATE, CONTACT_INFO_TEMPLATE, ADDITIONAL_INFO,
-                          AVITO_URL_TEMPLATE)
+                          AVITO_URL_TEMPLATE, DATA_FROM_ADVERTISEMENT_TEMPLATE)
 
 
 class AddRoomDialogStates(Enum):
@@ -74,6 +74,17 @@ class AddRoomDialogStates(Enum):
 #     )
 
 
+def fill_data_from_advertisement_template(data: DataToGather) -> str:
+    return DATA_FROM_ADVERTISEMENT_TEMPLATE.format(
+        room_area=data.room_area,
+        number_of_rooms_in_flat=data.number_of_rooms_in_flat,
+        flour=data.flour,
+        flours_in_building=data.flours_in_building,
+        address=data.address,
+        price=data.price // 1000,
+    )
+
+
 def fill_parsed_room_template(data: DataToGather) -> str:
     text = PARSED_ROOM_TEMPLATE.format(
         room_area=data.room_area,
@@ -81,7 +92,7 @@ def fill_parsed_room_template(data: DataToGather) -> str:
         flour=data.flour,
         flours_in_building=data.flours_in_building,
         address=str(data.address),
-        price=data.price,
+        price=data.price // 1000,
     )
     if data.contact_phone:
         text += '\n' + CONTACT_INFO_TEMPLATE.format(
@@ -121,10 +132,10 @@ def fill_first_room_template(data: DataToGather) -> str:
     price_per_meter = int(data.price / data.room_area) // 1000 if data.flat_area else ''
     price = data.price // 1000
 
-    elevator = ('л' if data.elevator_nearby else 'бл') if data.elevator_nearby is not None else ''
+    elevator = 'бл' if data.elevator_nearby is not None and not data.elevator_nearby else ''
 
     if data.flour and data.flour == 2 and data.room_under_is_living is not None:
-        room_under = 'ж' if data.room_under_is_living else 'н'
+        room_under = 'кв' if data.room_under_is_living else 'н'
     else:
         room_under = ''
 
@@ -157,5 +168,6 @@ def fill_first_room_template(data: DataToGather) -> str:
         contact_phone=data.contact_phone if data.contact_phone else '',
         contact_status=data.contact_status if data.contact_status else '',
         contact_name=data.contact_name if data.contact_name else '',
+        is_historical='памятник' if data.house_is_historical else '',
         url=str(data.url),
     )

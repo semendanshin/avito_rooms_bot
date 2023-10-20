@@ -1,6 +1,9 @@
+import pprint
+
 from dadata import Dadata
 from pydantic import BaseModel
 from typing import Any
+from bot.config import config
 
 
 class DadataAddress(BaseModel):
@@ -76,7 +79,7 @@ class DadataAddress(BaseModel):
     postal_box: str | None
     fias_id: str | None
     fias_code: str | None
-    fias_level: str | None
+    fias_level: int | None
     fias_actuality_state: str | None
     kladr_id: str | None
     capital_marker: str | None
@@ -106,15 +109,4 @@ class DadataRepository:
         return DadataAddress(**response)
 
 
-if __name__ == '__main__':
-    from dotenv import load_dotenv
-    import os
-    load_dotenv()
-    dadata = DadataRepository(os.environ.get('dadata_token'), os.environ.get('dadata_secret'))
-    address = dadata.get_clean_data('Санкт-Петербург, Суворовский пр-т, 43-45Б, 25')
-    print(address.flat_area)
-    print(address.flat_cadnum)
-    print(address.house_cadnum)
-else:
-    from bot.config import config
-    dadata = DadataRepository(config.dadata_token.get_secret_value(), config.dadata_secret.get_secret_value())
+dadata = DadataRepository(config.dadata_token.get_secret_value(), config.dadata_secret.get_secret_value())
