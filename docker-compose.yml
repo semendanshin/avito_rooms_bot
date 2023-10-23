@@ -30,6 +30,7 @@ services:
     volumes:
       - ./logs:/code/logs
       - ./migrations/versions:/code/migrations/versions
+      - ./bot:/code/bot
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     env_file:
