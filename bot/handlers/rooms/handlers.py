@@ -859,7 +859,7 @@ async def calculate_room(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data[update.effective_message.id] = {'ad_id': ad_id}
 
         message = await update.effective_message.reply_text(
-            'Введите цену за квадратный метр',
+            'Цену за квадратный метр (в т.р.)',
         )
 
         context.user_data["messages_to_delete"] = [message]
@@ -903,11 +903,11 @@ async def calculate_room(update: Update, context: ContextTypes.DEFAULT_TYPE):
         something_per_meter = something / total_living_area
 
         text = f'Цена квартиры: {flat_price}\n' \
-                f'Комиссия агента: {agent_commission_price}\n\n'
+               f'Комиссия агента: {agent_commission_price}\n\n'
 
         for el in advertisement.room.rooms_info:
-            text += f'Комната {el.number} - {el.area} м2\n'\
-                    f'Цена: {el.area * price_per_meter}'
+            text += f'Комната {el.number} - {el.area} м2 '\
+                    f'Цена доли: {el.area * price_per_meter} т.р.\n'
 
         text += '\n' + f'Доходность инвестора % годовых (срок 6 мес): {(something_per_meter / price_per_meter) * 100 * 2}'
 
@@ -946,7 +946,7 @@ async def process_agent_commission(update: Update, context: ContextTypes.DEFAULT
 
     effective_message_id = context.user_data['effective_message_id']
     data = context.user_data[effective_message_id]
-    data['agent_commission'] = float(update.message.text.replace(',', '.'))
+    data['agent_commission'] = float(update.message.text.replace(',', '.')) * 1000
 
     await update.message.delete()
     await delete_messages(context)
