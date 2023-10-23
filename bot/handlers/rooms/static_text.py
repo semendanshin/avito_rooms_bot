@@ -14,7 +14,7 @@ S-{flat_area}м2({living_area}={living_area_percent}%) h={flat_height}
 DATA_FROM_ADVERTISEMENT_TEMPLATE = """
 Комната {room_area} м² в {number_of_rooms_in_flat}-к. кв, {flour}/{flours_in_building} эт.
 {address}
-{price} тр
+{price}тр({price_per_meter}тр/м2)
 """
 
 PARSED_ROOM_TEMPLATE = """

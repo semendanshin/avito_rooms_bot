@@ -1,3 +1,4 @@
+import asyncio
 import pprint
 
 from telegram import Update, Bot, Message, ReplyKeyboardMarkup, InlineKeyboardMarkup
@@ -21,6 +22,7 @@ import re
 
 from .manage_data import (
     AddRoomDialogStates,
+    CalculateRoomDialogStates,
     fill_first_room_template,
     fill_parsed_room_template,
     fill_data_from_advertisement_template,
@@ -35,13 +37,14 @@ from .keyboards import (
     get_view_type_keyboard,
     get_toilet_type_keyboard,
     get_review_keyboard,
+    get_yes_or_no_keyboard,
 )
 
 
 logger = getLogger(__name__)
 
 
-async def update_message(bot: Bot, message_id: int, chat_id: int, data: DataToGather):
+async def update_message_first_template(bot: Bot, message_id: int, chat_id: int, data: DataToGather):
     await bot.edit_message_text(
         text=fill_first_room_template(data),
         chat_id=chat_id,
@@ -315,6 +318,11 @@ async def change_flat_number(update: Update, context: ContextTypes.DEFAULT_TYPE)
         context.user_data["messages_to_delete"] += [message, update.message]
 
         return AddRoomDialogStates.KADASTR_NUMBER
+    else:
+        message = await update.effective_message.reply_text(
+            text=f'Кадастровый номер: {address.flat_cadnum}',
+        )
+        context.user_data["messages_to_delete"] += [message]
 
     if address.flat_cadnum and await room_service.get_room(context.session, cadnum_to_id(address.flat_cadnum)):
         message = await update.effective_message.reply_text(
@@ -326,15 +334,31 @@ async def change_flat_number(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return AddRoomDialogStates.FLAT_NUMBER
 
     data.cadastral_number = address.flat_cadnum
-    data.address = f'{address.street} {address.street_type}, д. {address.house}'
+    data.address = f'{address.street} {address.street_type} {address.house}'
     context.user_data[effective_message_id] = data
 
-    message = await update.effective_message.reply_text(
-        text='Высота потолка (пропустить -> /0)',
-    )
-    context.user_data["messages_to_delete"] += [message, update.message]
+    if address.flat_area:
+        message = await update.effective_message.reply_text(
+            text=f'Площадь квартиры: {address.flat_area} м2',
+        )
+        context.user_data["messages_to_delete"] += [message]
+        data.flat_area = float(address.flat_area.replace(',', '.'))
+        context.user_data[effective_message_id] = data
 
-    return AddRoomDialogStates.FLAT_HEIGHT
+        message = await update.effective_message.reply_text(
+            text='Высота потолка (пропустить -> /0)',
+        )
+
+        context.user_data["messages_to_delete"] += [message, update.message]
+
+        return AddRoomDialogStates.FLAT_HEIGHT
+    else:
+        message = await update.effective_message.reply_text(
+            text='Площадь квартиры (пропустить -> /0)',
+        )
+        context.user_data["messages_to_delete"] += [message, update.message]
+
+        return AddRoomDialogStates.FLAT_AREA
 
 
 async def change_kadastr_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -358,27 +382,6 @@ async def change_kadastr_number(update: Update, context: ContextTypes.DEFAULT_TY
         context.user_data[effective_message_id] = data
 
     message = await update.effective_message.reply_text(
-        text='Высота потолка (пропустить -> /0)',
-    )
-    context.user_data["messages_to_delete"] += [message, update.message]
-
-    return AddRoomDialogStates.FLAT_HEIGHT
-
-
-async def change_flat_height(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    effective_message_id = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
-
-    if update.message.text != '/0':
-        if not await validate_message_text(update, context, r'\d+([.,]\d+)?'):
-            return
-
-        height = float(update.message.text.replace(',', '.'))
-
-        data.flat_height = height
-        context.user_data[effective_message_id] = data
-
-    message = await update.effective_message.reply_text(
         text='Площадь квартиры (пропустить -> /0)',
     )
     context.user_data["messages_to_delete"] += [message, update.message]
@@ -399,6 +402,27 @@ async def change_flat_area(update: Update, context: ContextTypes.DEFAULT_TYPE):
         area = float(update.message.text.replace(',', '.'))
 
         data.flat_area = area
+        context.user_data[effective_message_id] = data
+
+    message = await update.effective_message.reply_text(
+        text='Высота потолка (пропустить -> /0)',
+    )
+    context.user_data["messages_to_delete"] += [message, update.message]
+
+    return AddRoomDialogStates.FLAT_HEIGHT
+
+
+async def change_flat_height(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    effective_message_id = context.user_data['effective_message_id']
+    data = context.user_data[effective_message_id]
+
+    if update.message.text != '/0':
+        if not await validate_message_text(update, context, r'\d+([.,]\d+)?'):
+            return
+
+        height = float(update.message.text.replace(',', '.'))
+
+        data.flat_height = height
         context.user_data[effective_message_id] = data
 
     message = await update.effective_message.reply_text(
@@ -553,8 +577,8 @@ async def change_rooms_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = context.user_data[effective_message_id]
 
     if update.message.text != '/0':
-        full_pattern = r"((\d+)/(\d+([.,]\d+)?)[\s-]([ЖН])\((.*)\))[.,]?"
-        search_pattern = r"(\d+)/(\d+([.,]\d+)?)[\s-]([ЖН])\(([^)]*)\)[.,]?"
+        full_pattern = r"((\d+)/(\d+([.,]\d+)?)[\s-]?([ЖНСРжнср\s])\((.*)\))[.,]?"
+        search_pattern = r"(\d+)/(\d+([.,]\d+)?)[\s-]?([ЖНСРжнср\s])\(([^)]*)\)[.,]?"
         rooms_info = update.message.text
 
         if not await validate_message_text(update, context, full_pattern):
@@ -562,13 +586,19 @@ async def change_rooms_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         matches = re.findall(search_pattern, rooms_info)
 
+        if len(matches) != data.number_of_rooms_in_flat:
+            message = await update.message.reply_text(
+                "Количество введенных комнат отличается от количетсва комнат в квартире"
+            )
+            context.user_data["messages_to_delete"].extend([message, update.message])
+            return
 
         rooms = []
 
         for match in matches:
             room_plan_number = match[0]
             room_area = float(match[1].replace(',', '.'))
-            room_status = RoomType(match[3])
+            room_status = RoomType(match[3].upper()) if match[3] else None
             room_description = match[4]
 
             room = RoomInfoCreate(
@@ -677,6 +707,8 @@ async def send(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     advertisement = await advertisement_service.create_advertisement(session, advertisement_create)
+
+    await session.commit()
 
     await update.callback_query.answer(
         text='Объявление добавлено',
@@ -801,22 +833,133 @@ async def view_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 'Объявление помечено как плохое'
             )
     # await update.effective_message.edit_reply_markup(reply_markup=None)
+    await delete_messages(context)
 
 
 async def show_data_from_ad(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    data = context.user_data[update.callback_query.message.message_id]
+    data = context.user_data.get(update.effective_message.id)
 
-    data2 = DataToGather(
-        url=data.url,
-        price=data.price,
-        room_area=data.room_area,
-        number_of_rooms_in_flat=data.number_of_rooms_in_flat,
-        flour=data.flour,
-        flours_in_building=data.flours_in_building,
-        address=data.address,
-    )
+    if not data:
+        await update.callback_query.answer(
+            text='К сожалению данные для этого сообщения потерялись',
+            show_alert=True,
+        )
 
     await update.callback_query.answer(
-        text=fill_data_from_advertisement_template(data2),
+        text=fill_data_from_advertisement_template(data),
         show_alert=True,
     )
+
+
+async def calculate_room(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.user_data.get(update.effective_message.id):
+        await update.callback_query.answer()
+        data = update.callback_query.data
+        ad_id = int(data.split('_')[-1])
+        context.user_data[update.effective_message.id] = {'ad_id': ad_id}
+
+        message = await update.effective_message.reply_text(
+            'Введите цену за квадратный метр',
+        )
+
+        context.user_data["messages_to_delete"] = [message]
+        context.user_data['effective_message_id'] = update.effective_message.id
+
+        return CalculateRoomDialogStates.PRICE_PER_METER
+    else:
+        data = context.user_data[update.effective_message.id]
+
+        try:
+            session = context.session
+        except AttributeError:
+            raise Exception('Session is not in context')
+
+        advertisement = await advertisement_service.get_advertisement(session, data.get('ad_id'))
+
+        await session.refresh(advertisement.room, attribute_names=["rooms_info"])
+
+        advertisement = AdvertisementResponse.model_validate(advertisement)
+
+        #Цена кв-ры и комиссия АН: (165*112,6)=>18579*0,1=1858
+# Маржа ЖкОП минус комиссия на 1м2 (МБК на1м2): (112.6-86.5)=>26.1*165=>4306-1858=>2448/86,5=>28
+# Цена доли: 165*33,0=5445 / Доходность инвестора % годовых (срок 6 мес): (28/165)*100*2=>34
+
+        price_per_meter = data.get('price_per_meter')
+        agent_commission = data.get('agent_commission')
+
+        if not price_per_meter or not agent_commission:
+            await update.callback_query.answer(
+                'Заполните все поля',
+                show_alert=True,
+            )
+            return
+
+        flat_price = price_per_meter * advertisement.room.flat_area
+        agent_commission_price = flat_price * agent_commission / 100
+        total_living_area = sum([room.area for room in advertisement.room.rooms_info])
+        non_living_area = advertisement.room.flat_area - total_living_area
+        non_living_price = non_living_area * price_per_meter
+        something = non_living_price - agent_commission_price
+        something_per_meter = something / total_living_area
+
+        text = f'Цена квартиры: {flat_price}\n' \
+                f'Комиссия агента: {agent_commission_price}\n\n'
+
+        for el in advertisement.room.rooms_info:
+            text += f'Комната {el.number} - {el.area} м2\n'\
+                    f'Цена: {el.area * price_per_meter}'
+
+        text += '\n' + f'Доходность инвестора % годовых (срок 6 мес): {(something_per_meter / price_per_meter) * 100 * 2}'
+
+        await update.callback_query.answer()
+
+        message = await update.effective_message.reply_text(
+            text=text,
+        )
+
+        context.user_data["messages_to_delete"] += [message]
+
+        return ConversationHandler.END
+
+
+async def process_price_per_meter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if not validate_message_text(update, context, r'\d+([.,]\d+)?'):
+        return
+
+    effective_message_id = context.user_data['effective_message_id']
+    data = context.user_data[effective_message_id]
+    data['price_per_meter'] = float(update.message.text.replace(',', '.'))
+
+    message = await update.effective_message.reply_text(
+        'Введите комиссию агента',
+    )
+
+    context.user_data["messages_to_delete"] += [message, update.message]
+
+    return CalculateRoomDialogStates.AGENT_COMMISSION
+
+
+async def process_agent_commission(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not validate_message_text(update, context, r'\d+([.,]\d+)?'):
+        return
+
+    effective_message_id = context.user_data['effective_message_id']
+    data = context.user_data[effective_message_id]
+    data['agent_commission'] = float(update.message.text.replace(',', '.'))
+
+    await update.message.delete()
+    await delete_messages(context)
+
+    return ConversationHandler.END
+
+
+async def cancel_calculating(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = await update.effective_message.reply_text(
+        'Отмена расчета (данные не сохранены)',
+    )
+    await delete_messages(context)
+    await update.message.delete()
+    await asyncio.sleep(5)
+    await message.delete()
+    return ConversationHandler.END

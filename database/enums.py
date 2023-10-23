@@ -2,10 +2,10 @@ from enum import Enum as pyEnum
 
 
 class UserRole(pyEnum):
-    USER = 'User'
-    ADMIN = 'Admin'
-    DISPATCHER = 'Dispatcher'
-    AGENT = 'Agent'
+    USER = 'Пользователь'
+    ADMIN = 'Руководитель'
+    DISPATCHER = 'Диспетчер'
+    AGENT = 'Агент'
 
 
 class AdvertisementStatus(pyEnum):
@@ -19,6 +19,8 @@ class AdvertisementStatus(pyEnum):
 class RoomType(pyEnum):
     LIVING = 'Ж'
     NON_LIVING = 'Н'
+    FOR_RENT = 'С'
+    RELATIVE = 'Р'
 
 
 class ToiletType(pyEnum):

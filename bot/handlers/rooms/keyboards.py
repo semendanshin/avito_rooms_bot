@@ -136,3 +136,16 @@ def get_review_keyboard(advertisement_id: int) -> InlineKeyboardMarkup:
         ]
     ]
     return InlineKeyboardMarkup(keyboard)
+
+
+def get_yes_or_no_keyboard(callback_pattern: str) -> InlineKeyboardMarkup:
+    keyboard = [
+        [
+            InlineKeyboardButton('Да', callback_data=callback_pattern + 'yes'),
+            InlineKeyboardButton('Нет', callback_data=callback_pattern + 'no'),
+        ],
+        [
+            InlineKeyboardButton('Пропустить', callback_data=callback_pattern + 'skip'),
+        ]
+    ]
+    return InlineKeyboardMarkup(keyboard)

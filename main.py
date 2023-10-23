@@ -234,6 +234,32 @@ def main():
         )
     )
 
+    app.add_handler(
+        ConversationHandler(
+            entry_points=[CallbackQueryHandler(
+                rooms_handlers.calculate_room,
+                pattern=r'calculate_.*',
+            )],
+            states={
+                rooms_handlers.CalculateRoomDialogStates.PRICE_PER_METER: [
+                    MessageHandler(
+                        filters=filters.TEXT & ~filters.Command(),
+                        callback=rooms_handlers.process_price_per_meter,
+                    ),
+                ],
+                rooms_handlers.CalculateRoomDialogStates.AGENT_COMMISSION: [
+                    MessageHandler(
+                        filters=filters.TEXT & ~filters.Command(),
+                        callback=rooms_handlers.process_agent_commission,
+                    ),
+                ],
+            },
+            fallbacks=[CommandHandler('cancel', rooms_handlers.cancel_calculating)],
+            name='calculate_room_handler',
+            persistent=True,
+        )
+    )
+
     app.add_handler(TypeHandler(Update, middleware.after_update), group=1)
 
     app.post_init

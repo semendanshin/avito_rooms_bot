@@ -24,6 +24,11 @@ class AddRoomDialogStates(Enum):
     MANUAL_ADDING = 'manual_adding'
 
 
+class CalculateRoomDialogStates(Enum):
+    PRICE_PER_METER = 'price_per_meter'
+    AGENT_COMMISSION = 'agent_commission'
+
+
 # def fill_second_room_template(data: DataToGather) -> str:
 #     living_area = sum([room.area for room in data.rooms_info]) if data.rooms_info else ''
 #     living_area_percent = int(living_area / data.flat_area * 100) if data.flat_area and living_area else ''
@@ -82,6 +87,7 @@ def fill_data_from_advertisement_template(data: DataToGather) -> str:
         flours_in_building=data.flours_in_building,
         address=data.address,
         price=data.price // 1000,
+        price_per_meter=int(data.price / data.room_area // 1000),
     )
 
 
@@ -126,7 +132,7 @@ def fill_parsed_room_template(data: DataToGather) -> str:
 
 
 def fill_first_room_template(data: DataToGather) -> str:
-    living_area = sum([room.area for room in data.rooms_info]) if data.rooms_info else ''
+    living_area = round(sum([room.area for room in data.rooms_info]), 1) if data.rooms_info else ''
     living_area_percent = int(living_area / data.flat_area * 100) if data.flat_area and living_area else ''
 
     price_per_meter = int(data.price / data.room_area) // 1000 if data.flat_area else ''

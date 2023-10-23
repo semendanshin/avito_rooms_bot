@@ -84,10 +84,15 @@ async def save_role(update: Update, context: ContextTypes.DEFAULT_TYPE):
     role = UserRole(role)
 
     await user_service.update_user_role(session, username, role)
+    updated_user = await user_service.get_user_by_username(session, username)
 
     await update.callback_query.answer(
         f'Роль пользователя @{username} успешно изменена на {role.value}',
         show_alert=True,
+    )
+    await context.bot.send_message(
+        updated_user.id,
+        f"Ваша роль изменена на {role.value}"
     )
     for el in context.user_data['messages_to_delete']:
         await el.delete()
