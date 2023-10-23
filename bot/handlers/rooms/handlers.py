@@ -821,6 +821,8 @@ async def view_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE)
             update.effective_user.id,
         )
 
+        await session.commit()
+
         if status == AdvertisementStatus.VIEWED:
             await update.effective_message.reply_text(
                 'Объявление помечено как хорошее',

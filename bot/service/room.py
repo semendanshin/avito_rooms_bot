@@ -17,6 +17,4 @@ async def create_room(session: AsyncSession, room: RoomCreate) -> Room:
 
     room = Room(**room.model_dump())
     session.add(room)
-    await session.commit()
-    await session.refresh(room)
     return room
