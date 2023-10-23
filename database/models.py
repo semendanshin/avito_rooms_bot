@@ -28,20 +28,20 @@ class User(AsyncAttrs, Base):
 class RoomInfo(AsyncAttrs, Base):
     __tablename__ = 'room_info'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     number = Column(Integer)
     status = Column(Enum(RoomType))
     area = Column(Float)
     description = Column(String)
 
-    main_room_id = Column(Integer, ForeignKey('room.id', ondelete='RESTRICT'))
+    main_room_id = Column(BigInteger, ForeignKey('room.id', ondelete='RESTRICT'))
     main_room = relationship('Room', back_populates='rooms_info', lazy='select')
 
 
 class Room(AsyncAttrs, Base):
     __tablename__ = 'room'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(BigInteger, primary_key=True)
     room_area = Column(Float)
     flat_area = Column(Float)
     number_of_rooms_in_flat = Column(Integer)
@@ -68,7 +68,7 @@ class Room(AsyncAttrs, Base):
 class Advertisement(AsyncAttrs, Base):
     __tablename__ = 'advertisement'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     url = Column(String)
     price = Column(Integer)
     status = Column(Enum(AdvertisementStatus))
@@ -77,17 +77,17 @@ class Advertisement(AsyncAttrs, Base):
     contact_name = Column(String)
     description = Column(String)
 
-    room_id = Column(Integer, ForeignKey('room.id', ondelete='RESTRICT'))
+    room_id = Column(BigInteger, ForeignKey('room.id', ondelete='RESTRICT'))
     room = relationship('Room', back_populates='advertisements')
 
     added_at = Column(DateTime, default=datetime.utcnow)
-    added_by_id = Column(Integer, ForeignKey('user.id', ondelete='RESTRICT'))
+    added_by_id = Column(BigInteger, ForeignKey('user.id', ondelete='RESTRICT'))
     added_by = relationship('User', back_populates='added_advertisements', foreign_keys=[added_by_id])
 
     viewed_at = Column(DateTime, nullable=True)
-    viewed_by_id = Column(Integer, ForeignKey('user.id', ondelete='RESTRICT'))
+    viewed_by_id = Column(BigInteger, ForeignKey('user.id', ondelete='RESTRICT'))
     viewed_by = relationship('User', back_populates='viewed_advertisements', foreign_keys=[viewed_by_id])
 
     assigned_at = Column(DateTime, nullable=True)
-    assigned_to_id = Column(Integer, ForeignKey('user.id', ondelete='RESTRICT'))
+    assigned_to_id = Column(BigInteger, ForeignKey('user.id', ondelete='RESTRICT'))
     assigned_to = relationship('User', back_populates='assigned_advertisements', foreign_keys=[assigned_to_id])
