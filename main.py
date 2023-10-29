@@ -13,6 +13,7 @@ from telegram import Update, BotCommand
 
 from bot.middlewares import Middleware, SessionMiddleware, UserMiddleware
 
+from bot.utils.error import send_stacktrace_to_tg_chat
 from bot.handlers.onboarding import handlers as onboarding_handlers
 from bot.handlers.onboarding.static_text import (
     ADD_ROOM_KEYBOARD_TEXT,
@@ -292,6 +293,8 @@ def main():
     )
 
     app.add_handler(TypeHandler(Update, middleware.after_update), group=1)
+
+    app.add_error_handler(send_stacktrace_to_tg_chat)
 
     app.run_polling()
 

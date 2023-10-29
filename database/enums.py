@@ -24,8 +24,8 @@ class RoomType(pyEnum):
 
 
 class ToiletType(pyEnum):
-    COMBINED = 'СУ-Р'
-    SEPARATE = 'СУ-С'
+    COMBINED = 'СУ-С'
+    SEPARATE = 'СУ-Р'
     WITHOUTBATH = 'СУ-БВ'
     SHOWERONKITCHEN = 'СУ-ДК'
 
