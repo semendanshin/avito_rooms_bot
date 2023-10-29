@@ -48,11 +48,11 @@ def main():
     async def post_init(application: Application) -> None:
         await application.bot.set_my_commands(
             [
-                ('start', 'Запустить бота'),
-                ('add_room', 'Добавить квартиру'),
-                ('set_role', 'Дать роль'),
-                ('get_roles', 'Посмотреть пользователей с ролью'),
-                ('cancel', 'Отменить')
+                # ('start', 'Запустить бота'),
+                # ('add_room', 'Добавить квартиру'),
+                # ('set_role', 'Дать роль'),
+                # ('get_roles', 'Посмотреть пользователей с ролью'),
+                # ('cancel', 'Отменить')
             ]
         )
 
