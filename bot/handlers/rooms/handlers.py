@@ -886,7 +886,7 @@ async def cancel_room_adding(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await update.effective_message.reply_text(
         'Отмена добавления комнаты (данные не сохранены)',
     )
-    await update_message_and_delete_messages(update, context, context.user_data[context.user_data['effective_message_id']])
+    await delete_messages(context)
     return ConversationHandler.END
 
 
