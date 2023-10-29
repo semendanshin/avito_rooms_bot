@@ -155,3 +155,15 @@ def get_calculate_keyboard(advertisement_id: int) -> InlineKeyboardMarkup:
         ],
     ]
     return InlineKeyboardMarkup(keyboard)
+
+
+def get_delete_keyboard(advertisement_id: int) -> InlineKeyboardMarkup:
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                'Удалить',
+                callback_data=f'delete_parsed_{advertisement_id}',
+            ),
+        ],
+    ]
+    return InlineKeyboardMarkup(keyboard)

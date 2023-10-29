@@ -37,6 +37,7 @@ from .keyboards import (
     get_review_keyboard,
     get_yes_or_no_keyboard,
     get_calculate_keyboard,
+    get_delete_keyboard,
 )
 
 
@@ -861,6 +862,7 @@ async def send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if advertisement.added_by:
         text += '\n' + DISPATCHER_USERNAME_TEMPLATE.format(
             username=advertisement.added_by.username,
+            date=advertisement.added_at.strftime('%d.%m'),
         )
 
     admins = await user_service.get_admins(session)
@@ -926,7 +928,7 @@ async def send_advertisement(session, bot: Bot, advertisement_id: int, user_id: 
     if advertisement.added_by:
         text += '\n' + DISPATCHER_USERNAME_TEMPLATE.format(
             username=advertisement.added_by.username,
-            date=advertisement.created_at.strftime('%d.%m'),
+            date=advertisement.added_at.strftime('%d.%m'),
         )
 
     await bot.send_photo(
@@ -988,10 +990,18 @@ async def show_data_from_ad(update: Update, context: ContextTypes.DEFAULT_TYPE):
             show_alert=True,
         )
 
-    await update.callback_query.answer(
+    await update.callback_query.answer()
+
+    await update.effective_message.reply_text(
         text=fill_data_from_advertisement_template(data),
-        show_alert=True,
+        reply_markup=get_delete_keyboard(advertisement_id=0),
     )
+
+
+async def delete_message_data_from_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.callback_query.answer()
+
+    await update.effective_message.delete()
 
 
 async def calculate_room(update: Update, context: ContextTypes.DEFAULT_TYPE):

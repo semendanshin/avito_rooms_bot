@@ -89,7 +89,7 @@ def fill_data_from_advertisement_template(data: DataToGather) -> str:
         price=data.price // 1000,
         price_per_meter=int(data.price / data.room_area // 1000),
     )
-    text += '\n' + data.description[:200 - len(text) - 5] + '...'
+    text += '\n' + data.description
     return text
 
 
@@ -138,7 +138,7 @@ def fill_first_room_template(data: DataToGather) -> str:
     living_area = round(sum([room.area for room in data.rooms_info]), 1) if data.rooms_info else ''
     living_area_percent = int(living_area / data.flat_area * 100) if data.flat_area and living_area else ''
 
-    price_per_meter = int(data.price / data.room_area) // 1000 if data.flat_area else ''
+    price_per_meter = int(data.price / data.room_area) // 1000 if data.room_area else ''
     price = data.price // 1000
 
     elevator = 'бл' if data.elevator_nearby is not None and not data.elevator_nearby else ''
@@ -148,9 +148,10 @@ def fill_first_room_template(data: DataToGather) -> str:
     else:
         room_under = ''
 
+    # f'{room.number}/{room.area}-{room.status.value}({room.description})'
     rooms_info = ', '.join(
         [
-            f'{room.number}/{room.area}-{room.status.value}({room.description})'
+            f'{room.number}/{room.area}{room.description}'
             for room in data.rooms_info
         ]
     ) if data.rooms_info else ''

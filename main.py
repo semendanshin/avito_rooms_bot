@@ -239,6 +239,11 @@ def main():
         pattern=r'review_.*',
     ))
 
+    app.add_handler(CallbackQueryHandler(
+        rooms_handlers.delete_message_data_from_advertisement,
+        pattern=r'delete_parsed_.*',
+    ))
+
     app.add_handler(
         CommandHandler(
             'get_roles',
