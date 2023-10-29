@@ -14,7 +14,13 @@ from telegram import Update, BotCommand
 from bot.middlewares import Middleware, SessionMiddleware, UserMiddleware
 
 from bot.handlers.onboarding import handlers as onboarding_handlers
-from bot.handlers.onboarding.static_text import ADD_ROOM_KEYBOARD_TEXT, STATISTICS_KEYBOARD_TEXT
+from bot.handlers.onboarding.static_text import (
+    ADD_ROOM_KEYBOARD_TEXT,
+    STATISTICS_KEYBOARD_TEXT,
+    CANCEL_KEYBOARD_TEXT,
+    SET_ROLE_KEYBOARD_TEXT,
+    GET_ROLES_KEYBOARD_TEXT,
+)
 from bot.handlers.rooms import handlers as rooms_handlers
 from bot.handlers.role import handlers as role_handlers
 from bot.config import config
@@ -110,10 +116,10 @@ def main():
                 ),
             ],
             rooms_handlers.AddRoomDialogStates.KADASTR_NUMBER: [
-                CommandHandler('0', rooms_handlers.change_kadastr_number),
+                CommandHandler('0', rooms_handlers.change_kadastral_number),
                 MessageHandler(
                     filters=filters.TEXT & ~filters.Command(),
-                    callback=rooms_handlers.change_kadastr_number,
+                    callback=rooms_handlers.change_kadastral_number,
                 ),
             ],
             rooms_handlers.AddRoomDialogStates.FLAT_HEIGHT: [
@@ -131,22 +137,22 @@ def main():
                 ),
             ],
             rooms_handlers.AddRoomDialogStates.HOUSE_IS_HISTORICAL: [
-                MessageHandler(
-                    filters=filters.TEXT & ~filters.Command(),
-                    callback=rooms_handlers.change_house_is_historical,
-                ),
+                CallbackQueryHandler(
+                    rooms_handlers.change_house_is_historical,
+                    pattern=r'is_historical_.*',
+                )
             ],
             rooms_handlers.AddRoomDialogStates.ELEVATOR_NEARBY: [
-                MessageHandler(
-                    filters=filters.TEXT & ~filters.Command(),
-                    callback=rooms_handlers.change_elevator_nearby,
-                ),
+                CallbackQueryHandler(
+                    rooms_handlers.change_elevator_nearby,
+                    pattern=r'is_elevator_nearby_.*',
+                )
             ],
             rooms_handlers.AddRoomDialogStates.ROOM_UNDER: [
-                MessageHandler(
-                    filters=filters.TEXT & ~filters.Command(),
-                    callback=rooms_handlers.change_room_under,
-                ),
+                CallbackQueryHandler(
+                    rooms_handlers.change_room_under,
+                    pattern=r'room_under_is_living_.*',
+                )
             ],
             rooms_handlers.AddRoomDialogStates.ENTRANCE_TYPE: [
                 CallbackQueryHandler(rooms_handlers.change_entrance_type, pattern=r'entrance_type_.*'),
@@ -204,7 +210,13 @@ def main():
 
     app.add_handler(
         ConversationHandler(
-            entry_points=[CommandHandler('set_role', role_handlers.start_give_role)],
+            entry_points=[
+                CommandHandler('set_role', role_handlers.start_give_role),
+                MessageHandler(
+                    filters=filters.Text(SET_ROLE_KEYBOARD_TEXT),
+                    callback=role_handlers.start_give_role,
+                )
+            ],
             states={
                 role_handlers.AddRoleConversationSteps.GET_USERNAME: [
                     MessageHandler(
@@ -235,10 +247,17 @@ def main():
     )
 
     app.add_handler(
+        MessageHandler(
+            filters=filters.Text(GET_ROLES_KEYBOARD_TEXT),
+            callback=role_handlers.get_users_with_role,
+        )
+    )
+
+    app.add_handler(
         ConversationHandler(
             entry_points=[CallbackQueryHandler(
                 rooms_handlers.calculate_room,
-                pattern=r'calculate_.*',
+                pattern=r'calculate_start.*',
             )],
             states={
                 rooms_handlers.CalculateRoomDialogStates.PRICE_PER_METER: [
@@ -260,9 +279,14 @@ def main():
         )
     )
 
-    app.add_handler(TypeHandler(Update, middleware.after_update), group=1)
+    app.add_handler(
+        CallbackQueryHandler(
+            rooms_handlers.calculate_delete,
+            pattern=r'calculate_delete_.*',
+        )
+    )
 
-    app.post_init
+    app.add_handler(TypeHandler(Update, middleware.after_update), group=1)
 
     app.run_polling()
 

@@ -7,7 +7,6 @@ S-{flat_area}м2({living_area}={living_area_percent}%) h={flat_height}
 {rooms_info}
 
 {contact_phone} {contact_status}-{contact_name}
-
 <a href="{url}">АВИТО</a>
 """
 
@@ -41,7 +40,7 @@ AVITO_URL_TEMPLATE = """
 <a href="{url}">АВИТО</a>
 """
 DISPATCHER_USERNAME_TEMPLATE = """
-Добавлено пользователем @{username}
+Добавлено пользователем @{username} - {date}
 """
 ADMIN_USERNAME_TEMPLATE = """
 Оценено пользователем @{username}

@@ -80,7 +80,7 @@ class CalculateRoomDialogStates(Enum):
 
 
 def fill_data_from_advertisement_template(data: DataToGather) -> str:
-    return DATA_FROM_ADVERTISEMENT_TEMPLATE.format(
+    text = DATA_FROM_ADVERTISEMENT_TEMPLATE.format(
         room_area=data.room_area,
         number_of_rooms_in_flat=data.number_of_rooms_in_flat,
         flour=data.flour,
@@ -89,6 +89,8 @@ def fill_data_from_advertisement_template(data: DataToGather) -> str:
         price=data.price // 1000,
         price_per_meter=int(data.price / data.room_area // 1000),
     )
+    text += '\n' + data.description[:200 - len(text) - 5] + '...'
+    return text
 
 
 def fill_parsed_room_template(data: DataToGather) -> str:
@@ -122,7 +124,8 @@ def fill_parsed_room_template(data: DataToGather) -> str:
             toilet_type=data.toilet_type.value if data.toilet_type else '',
             rooms_info=', '.join(
                 [
-                    f'{room.number}/{room.area}-{room.status.value}({room.description})'
+                    f'{room.number}/{room.area}{room.description}'
+                    # f'{room.number}/{room.area}-{room.status.value}({room.description})'
                     for room in data.rooms_info
                 ]
             ) if data.rooms_info else '',
