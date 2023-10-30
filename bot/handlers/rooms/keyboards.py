@@ -167,3 +167,32 @@ def get_delete_keyboard(advertisement_id: int) -> InlineKeyboardMarkup:
         ],
     ]
     return InlineKeyboardMarkup(keyboard)
+
+
+def get_house_is_historical_keyboard(advertisement_id: int) -> InlineKeyboardMarkup:
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                'Да',
+                callback_data=f'is_historical_{advertisement_id}_1',
+            ),
+            InlineKeyboardButton(
+                'Нет',
+                callback_data=f'is_historical_{advertisement_id}_0',
+            ),
+        ],
+        [
+          InlineKeyboardButton(
+                'Проверить',
+                url='https://kgiop.gov.spb.ru/deyatelnost/uchet/list_objects/',
+          )
+        ],
+        [
+            InlineKeyboardButton(
+                'Пропустить',
+                callback_data=f'is_historical_{advertisement_id}_skip',
+            ),
+        ],
+    ]
+    return InlineKeyboardMarkup(keyboard)
+

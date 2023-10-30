@@ -38,6 +38,7 @@ from .keyboards import (
     get_yes_or_no_keyboard,
     get_calculate_keyboard,
     get_delete_keyboard,
+    get_house_is_historical_keyboard,
 )
 
 
@@ -379,7 +380,9 @@ async def change_flat_number(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     if update.message.text == '/0':
         message = await update.effective_message.reply_text(
-            text='Кадастровый номер (пропустить -> /0)',
+            text='Кадастровый номер (пропустить -> /0) <a href="https://dadata.ru/suggestions/#address">Дадата</a>',
+            parse_mode='HTML',
+            disable_web_page_preview=True,
         )
 
         await update_message_and_delete_messages(update, context, data)
@@ -403,7 +406,9 @@ async def change_flat_number(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     if not address or not address.flat_cadnum:
         message = await update.effective_message.reply_text(
-            text='Кадастровый номер (пропустить -> /0)',
+            text='Кадастровый номер (пропустить -> /0) <a href=https://dadata.ru/suggestions/#address>Дадата</a>',
+            parse_mode='HTML',
+            disable_web_page_preview=True,
         )
         context.user_data["messages_to_delete"] += [message]
 
@@ -455,8 +460,6 @@ async def change_kadastral_number(update: Update, context: ContextTypes.DEFAULT_
     effective_message_id = context.user_data['effective_message_id']
     data = context.user_data[effective_message_id]
 
-    await update_message_and_delete_messages(update, context, data)
-
     if update.message.text != '/0':
         if not await validate_message_text(update, context, r'[\d:]*'):
             return
@@ -476,6 +479,8 @@ async def change_kadastral_number(update: Update, context: ContextTypes.DEFAULT_
     message = await update.effective_message.reply_text(
         text='Площадь квартиры (пропустить -> /0)',
     )
+
+    await update_message_and_delete_messages(update, context, data)
 
     context.user_data["messages_to_delete"] += [message]
 
@@ -523,7 +528,7 @@ async def change_flat_height(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     await update.effective_message.reply_text(
         text='Дом является памятником?',
-        reply_markup=get_yes_or_no_keyboard(callback_pattern='is_historical_'),
+        reply_markup=get_house_is_historical_keyboard(0),
     )
 
     await update_message_and_delete_messages(update, context, data)
