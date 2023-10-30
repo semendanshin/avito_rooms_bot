@@ -912,7 +912,7 @@ async def cancel_phone_adding(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def cancel_info_adding(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update_message_and_delete_messages(update, context, context.user_data[context.user_data['effective_message_id']])
+    await delete_messages(context)
     await update.effective_message.reply_text(
         'Отмена добавления информации (данные не сохранены)',
     )
