@@ -406,7 +406,7 @@ async def change_flat_number(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     if not address or not address.flat_cadnum:
         message = await update.effective_message.reply_text(
-            text='Кадастровый номер (пропустить -> /0) <a href=https://dadata.ru/suggestions/#address>Дадата</a>',
+            text='Кадастровый номер (пропустить -> /0) <a href="https://dadata.ru/suggestions/#address">Дадата</a>',
             parse_mode='HTML',
             disable_web_page_preview=True,
         )
