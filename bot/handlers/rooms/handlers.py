@@ -1101,6 +1101,7 @@ async def process_agent_commission(update: Update, context: ContextTypes.DEFAULT
 
     await session.refresh(advertisement, attribute_names=['room'])
     await session.refresh(advertisement.room, attribute_names=["rooms_info"])
+    await session.refresh(advertisement, attribute_names=['added_by'])
 
     advertisement = AdvertisementResponse.model_validate(advertisement)
 
