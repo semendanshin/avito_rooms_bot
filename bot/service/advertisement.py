@@ -17,7 +17,6 @@ async def get_advertisement(session: AsyncSession, advertisement_id: int) -> Opt
     advertisement = result.scalars().first()
     if not advertisement:
         return None
-    await session.refresh(advertisement, attribute_names=["added_by", "viewed_by", "assigned_to", "room"])
     return advertisement
 
 
@@ -26,7 +25,6 @@ async def get_advertisement_by_url(session: AsyncSession, url: str) -> Optional[
     advertisement = result.scalars().first()
     if not advertisement:
         return None
-    await session.refresh(advertisement, attribute_names=["added_by", "viewed_by", "assigned_to", "room"])
     return advertisement
 
 

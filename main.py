@@ -24,6 +24,7 @@ from bot.handlers.onboarding.static_text import (
 )
 from bot.handlers.rooms import handlers as rooms_handlers
 from bot.handlers.role import handlers as role_handlers
+from bot.handlers.inspection_planing import handlers as inspection_planing_handlers
 from bot.config import config
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
@@ -117,10 +118,10 @@ def main():
                 ),
             ],
             rooms_handlers.AddRoomDialogStates.KADASTR_NUMBER: [
-                CommandHandler('0', rooms_handlers.change_kadastral_number),
+                CommandHandler('0', rooms_handlers.change_cadastral_number),
                 MessageHandler(
                     filters=filters.TEXT & ~filters.Command(),
-                    callback=rooms_handlers.change_kadastral_number,
+                    callback=rooms_handlers.change_cadastral_number,
                 ),
             ],
             rooms_handlers.AddRoomDialogStates.FLAT_HEIGHT: [
@@ -262,14 +263,26 @@ def main():
     app.add_handler(
         ConversationHandler(
             entry_points=[CallbackQueryHandler(
-                rooms_handlers.calculate_room,
+                rooms_handlers.start_calculate_room,
                 pattern=r'calculate_start.*',
             )],
             states={
-                rooms_handlers.CalculateRoomDialogStates.PRICE_PER_METER: [
+                rooms_handlers.CalculateRoomDialogStates.PRICE_PER_METER_FOR_BUY: [
                     MessageHandler(
                         filters=filters.TEXT & ~filters.Command(),
-                        callback=rooms_handlers.process_price_per_meter,
+                        callback=rooms_handlers.process_price_per_meter_for_buy,
+                    ),
+                ],
+                rooms_handlers.CalculateRoomDialogStates.LIVING_PERIOD: [
+                    MessageHandler(
+                        filters=filters.TEXT & ~filters.Command(),
+                        callback=rooms_handlers.process_living_period,
+                    ),
+                ],
+                rooms_handlers.CalculateRoomDialogStates.PRICE_PER_METER_FOR_SELL: [
+                    MessageHandler(
+                        filters=filters.TEXT & ~filters.Command(),
+                        callback=rooms_handlers.process_price_per_meter_for_sell,
                     ),
                 ],
                 rooms_handlers.CalculateRoomDialogStates.AGENT_COMMISSION: [
@@ -281,6 +294,56 @@ def main():
             },
             fallbacks=[CommandHandler('cancel', rooms_handlers.cancel_calculating)],
             name='calculate_room_handler',
+            persistent=True,
+        )
+    )
+
+    app.add_handler(
+        ConversationHandler(
+            entry_points=[
+                CallbackQueryHandler(
+                    inspection_planing_handlers.start_inspection_planing,
+                    pattern=r'start_plan_inspection_.*',
+                ),
+            ],
+            states={
+                inspection_planing_handlers.InspectionPlaningConversationSteps.GET_DATE: [
+                    MessageHandler(
+                        filters=filters.TEXT & ~filters.Command(),
+                        callback=inspection_planing_handlers.save_date,
+                    ),
+                ],
+                inspection_planing_handlers.InspectionPlaningConversationSteps.GET_TIME: [
+                    CallbackQueryHandler(
+                        inspection_planing_handlers.save_time,
+                        pattern=r'set_time_.*',
+                    ),
+                ],
+                inspection_planing_handlers.InspectionPlaningConversationSteps.GET_CONTACT_INFO: [
+                    MessageHandler(
+                        filters=filters.TEXT & ~filters.Command(),
+                        callback=inspection_planing_handlers.save_contact,
+                    ),
+                ],
+                inspection_planing_handlers.InspectionPlaningConversationSteps.GET_METING_TIP: [
+                    MessageHandler(
+                        filters=(filters.TEXT | filters.PHOTO) & ~filters.Command(),
+                        callback=inspection_planing_handlers.save_meting_tip,
+                    ),
+                ],
+                inspection_planing_handlers.InspectionPlaningConversationSteps.CONFIRM: [
+                    CallbackQueryHandler(
+                        inspection_planing_handlers.confirm,
+                        pattern=r'confirm_plan_.*'
+                    ),
+                    CallbackQueryHandler(
+                        inspection_planing_handlers.cancel,
+                        pattern=r'cancel_plan_.*'
+                    )
+                ]
+            },
+            fallbacks=[CommandHandler('cancel', inspection_planing_handlers.cancel_inspection_planing)],
+            name='plan_inspection_handler',
             persistent=True,
         )
     )

@@ -61,3 +61,9 @@ class ViewTypeHumanReadable(pyEnum):
     STREET = 'Вид на улицу'
     YARD = 'Вид во двор'
     PARK = 'Вид на парк'
+
+
+class InspectionStatus(pyEnum):
+    PLANNED = 'Запланирован'
+    DONE = 'Проведен'
+    CANCELED = 'Отменен'

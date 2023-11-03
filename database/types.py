@@ -79,10 +79,7 @@ class AdvertisementResponse(BaseModel):
     added_by: UserResponse = Field()
 
     viewed_at: Optional[datetime]
-    viewed_by: Optional[UserResponse] = Field()
-
-    assigned_at: Optional[datetime]
-    assigned_to: Optional[UserResponse] = Field()
+    viewed_by_id: Optional[int]
 
     @field_validator('room', mode='before')
     def check_room(cls, v, values):
@@ -92,18 +89,6 @@ class AdvertisementResponse(BaseModel):
 
     @field_validator('added_by', mode='before')
     def check_added_by(cls, v, values):
-        if isinstance(v, User):
-            return UserResponse.model_validate(v, from_attributes=True)
-        return v
-
-    @field_validator('viewed_by', mode='before')
-    def check_viewed_by(cls, v, values):
-        if isinstance(v, User):
-            return UserResponse.model_validate(v, from_attributes=True)
-        return v
-
-    @field_validator('assigned_to', mode='before')
-    def check_assigned_to(cls, v, values):
         if isinstance(v, User):
             return UserResponse.model_validate(v, from_attributes=True)
         return v

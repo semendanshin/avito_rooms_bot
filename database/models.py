@@ -1,7 +1,7 @@
-from sqlalchemy import Column, Boolean, Enum, Integer, String, DateTime, ForeignKey, Float, BigInteger
+from sqlalchemy import Column, Boolean, Enum, Integer, String, DateTime, ForeignKey, Float, BigInteger, Date, Time
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship
-from database.enums import UserRole, AdvertisementStatus, EntranceType, ViewType, RoomType, ToiletType
+from database.enums import UserRole, AdvertisementStatus, EntranceType, ViewType, RoomType, ToiletType, InspectionStatus
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from datetime import datetime
 
@@ -21,8 +21,6 @@ class User(AsyncAttrs, Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     added_advertisements = relationship('Advertisement', back_populates='added_by', foreign_keys='Advertisement.added_by_id', lazy='select')
-    viewed_advertisements = relationship('Advertisement', back_populates='viewed_by', foreign_keys='Advertisement.viewed_by_id', lazy='select')
-    assigned_advertisements = relationship('Advertisement', back_populates='assigned_to', foreign_keys='Advertisement.assigned_to_id', lazy='select')
 
 
 class RoomInfo(AsyncAttrs, Base):
@@ -86,8 +84,47 @@ class Advertisement(AsyncAttrs, Base):
 
     viewed_at = Column(DateTime, nullable=True)
     viewed_by_id = Column(BigInteger, ForeignKey('user.id', ondelete='RESTRICT'))
-    viewed_by = relationship('User', back_populates='viewed_advertisements', foreign_keys=[viewed_by_id])
+    # viewed_by = relationship('User', back_populates='viewed_advertisements', foreign_keys=[viewed_by_id])
 
-    assigned_at = Column(DateTime, nullable=True)
-    assigned_to_id = Column(BigInteger, ForeignKey('user.id', ondelete='RESTRICT'))
-    assigned_to = relationship('User', back_populates='assigned_advertisements', foreign_keys=[assigned_to_id])
+    pinned_dispatcher_id = Column(BigInteger, ForeignKey('user.id', ondelete='RESTRICT'))
+    # pinned_dispatcher = relationship('User', back_populates='viewed_advertisements', foreign_keys=[pinned_dispatcher_id])
+
+    pinned_agent_id = Column(BigInteger, ForeignKey('user.id', ondelete='RESTRICT'))
+    # pinned_agent = relationship('User', back_populates='viewed_advertisements', foreign_keys=[pinned_agent_id])
+
+
+# class Review(AsyncAttrs, Base):
+#     __tablename__ = 'review'
+#
+#     id = Column(BigInteger, primary_key=True, autoincrement=True)
+#     text = Column(String)
+#
+#     reviewed_at = Column(DateTime, default=datetime.utcnow)
+#     reviewed_by_id = Column(BigInteger, ForeignKey('user.id', ondelete='RESTRICT'))
+#     reviewed_by = relationship('User', back_populates='reviewed_by', foreign_keys=[reviewed_by_id])
+#
+#     advertisement_id = Column(BigInteger, ForeignKey('advertisement.id', ondelete='RESTRICT'))
+#     # advertisement = relationship('Advertisement', back_populates='reviews')
+
+
+class Inspection(AsyncAttrs, Base):
+    __tablename__ = 'inspection'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    inspection_date = Column(Date)
+    inspection_period_start = Column(Time)
+    inspection_period_end = Column(Time)
+    status = Column(Enum(InspectionStatus), default=InspectionStatus.PLANNED)
+
+    contact_phone = Column(String, nullable=False)
+    contact_status = Column(String, nullable=False)
+    contact_name = Column(String, nullable=False)
+
+    meting_tip_text = Column(String, nullable=True)
+    meting_tip_photo_id = Column(String, nullable=True)
+
+    inspected_by_id = Column(BigInteger, ForeignKey('user.id', ondelete='RESTRICT'))
+    # inspected_by = relationship('User', back_populates='assigned_advertisements', foreign_keys=[inspected_by_id])
+
+    advertisement_id = Column(BigInteger, ForeignKey('advertisement.id', ondelete='RESTRICT'))
+    # advertisement = relationship('Advertisement', back_populates='inspections')
