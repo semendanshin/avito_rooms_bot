@@ -202,7 +202,7 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.effective_message.edit_reply_markup(reply_markup=None)
     effective_message = context.user_data['effective_message']
-    await effective_message.edit_replt_markup(reply_markup=None)
+    await effective_message.edit_reply_markup(reply_markup=None)
 
     return ConversationHandler.END
 
