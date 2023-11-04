@@ -102,7 +102,7 @@ async def save_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['inspection'].contact_status = status
 
     message = await update.message.reply_text(
-        'Введите комментарий к осмотру (одно фото и/или текст)'
+        'Как найти место встречи? (одно фото и/или текст)'
     )
 
     context.user_data['messages_to_delete'] += [update.message, message]
@@ -125,14 +125,17 @@ async def save_meting_tip(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await el.delete()
     await update.message.delete()
 
+    meting_tip_text = context.user_data["inspection"].meting_tip_text
+
     text = INSPECTION_PLANING_TEMPLATE.format(
+        day_of_week='',
         inspection_date=context.user_data["inspection"].inspection_date.strftime("%d.%m"),
         inspection_period_start=context.user_data["inspection"].inspection_period_start.strftime("%H:%M"),
         inspection_period_end=context.user_data["inspection"].inspection_period_end.strftime("%H:%M"),
         contact_phone=context.user_data["inspection"].contact_phone,
         contact_status=context.user_data["inspection"].contact_status,
         contact_name=context.user_data["inspection"].contact_name,
-        meting_tip_text=context.user_data["inspection"].meting_tip_text,
+        meting_tip_text=f"({meting_tip_text})" if meting_tip_text else '',
     )
 
     if context.user_data["inspection"].meting_tip_photo_id:
@@ -167,7 +170,7 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await session.refresh(advertisement.room, attribute_names=["rooms_info"])
     advertisement = AdvertisementResponse.model_validate(advertisement)
 
-    data=DataToGather(
+    data = DataToGather(
         **advertisement.model_dump(),
         **advertisement.room.model_dump(),
     )
@@ -182,7 +185,8 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     text = fill_first_room_template(data)
-    text += '\n' + INSPECTION_PLANING_TEMPLATE.format(
+    text += INSPECTION_PLANING_TEMPLATE.format(
+        day_of_week='',
         inspection_date=inspection.inspection_date.strftime("%d.%m"),
         inspection_period_start=inspection.inspection_period_start.strftime("%H:%M"),
         inspection_period_end=inspection.inspection_period_end.strftime("%H:%M"),
@@ -193,11 +197,11 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     for user in await user_service.get_admins(session):
-        await context.bot.send_message(
-            user.id,
-            text,
+        await context.bot.send_photo(
+            photo=data.plan_telegram_file_id,
+            chat_id=user.id,
+            caption=text,
             parse_mode='HTML',
-            disable_web_page_preview=True,
         )
 
     await update.effective_message.edit_reply_markup(reply_markup=None)

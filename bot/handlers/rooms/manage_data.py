@@ -74,7 +74,7 @@ def fill_parsed_room_template(data: DataToGather) -> str:
             entrance_type=data.entrance_type.value if data.entrance_type else '',
             view_type=data.view_type.value if data.view_type else '',
             toilet_type=data.toilet_type.value if data.toilet_type else '',
-            rooms_info=', '.join(
+            rooms_info='\n'.join(
                 [
                     f'{room.number}/{room.area}{room.description}'
                     # f'{room.number}/{room.area}-{room.status.value}({room.description})'
@@ -101,7 +101,7 @@ def fill_first_room_template(data: DataToGather) -> str:
         room_under = ''
 
     # f'{room.number}/{room.area}-{room.status.value}({room.description})'
-    rooms_info = ', '.join(
+    rooms_info = '\n'.join(
         [
             f'{room.number}/{room.area}{room.description}'
             for room in data.rooms_info
