@@ -1126,35 +1126,35 @@ async def process_agent_commission(update: Update, context: ContextTypes.DEFAULT
     total_living_area = sum([room.area for room in advertisement.room.rooms_info])
     non_living_area = advertisement.room.flat_area - total_living_area
 
-    flat_price = round(price_per_meter_for_buy * advertisement.room.flat_area, 2)
-    agent_commission_price = round(flat_price * agent_commission / 100, 2)
+    flat_price = round(price_per_meter_for_buy * advertisement.room.flat_area)
+    agent_commission_price = round(flat_price * agent_commission / 100)
 
     non_living_price = non_living_area * price_per_meter_for_buy
     something = non_living_price - agent_commission_price
     something_per_meter = something / total_living_area
 
     rooms_info_text = ''
-    room_info_template = '{room_number}/{room_area}{description} -> Д={room_price}'
-    room_for_sale_addition = ' -- К({price_per_meter_for_sell}) -- {living_period}мес={profit_year_percent}%'
+    room_info_template = '{room_number}/{room_area}-{status}={refusal} -> Д={room_price}'
+    room_for_sale_addition = ' -- КОМ({price_per_meter_for_sell}) {living_period}мес={profit_year_percent}%'
 
     for el in advertisement.room.rooms_info:
         room_price = round(
             price_per_meter_for_buy * advertisement.room.flat_area * el.area / total_living_area * (1 - agent_commission / 100),
-            2
         )
         rooms_info_text += room_info_template.format(
             room_number=el.number,
             room_area=el.area,
-            description=el.description,
+            # description=el.description,
+            status='',
+            refusal='',
             room_price=room_price
         )
         if 'ПП' in el.description:
             rooms_info_text += room_for_sale_addition.format(
                 price_per_meter_for_sell=price_per_meter_for_sell,
-                living_period=living_period,
+                living_period=int(living_period),
                 profit_year_percent=round(
                     (room_price - price_per_meter_for_sell * el.area) / (price_per_meter_for_sell * el.area) * 100 * (12 / living_period),
-                    2
                 ),
             )
         rooms_info_text += '\n'
@@ -1180,9 +1180,9 @@ async def process_agent_commission(update: Update, context: ContextTypes.DEFAULT
         rooms_info=rooms_info_text,
         price_per_meter_for_buy=price_per_meter_for_buy,
         flat_price=flat_price,
-        agent_commission=agent_commission,
+        agent_commission=int(agent_commission),
         agent_commission_price=agent_commission_price,
-        mbk=round(something_per_meter, 2),
+        mbk=round(something_per_meter),
     )
 
     await update.effective_message.reply_text(
