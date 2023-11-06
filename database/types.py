@@ -163,6 +163,8 @@ class AdvertisementCreate(BaseModel):
 
 
 class DataToGather(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     url: Optional[str] = None
     price: Optional[int] = None
     status: AdvertisementStatus = AdvertisementStatus.NEW
@@ -174,6 +176,8 @@ class DataToGather(BaseModel):
     room_id: Optional[int] = None
 
     added_by_id: Optional[int] = None
+    added_by: Optional[UserResponse] = None
+    added_at: Optional[datetime] = None
 
     room_area: Optional[float] = None
     flat_area: Optional[float] = None
@@ -193,3 +197,9 @@ class DataToGather(BaseModel):
     toilet_type: Optional[ToiletType] = None
 
     rooms_info: Optional[list[RoomInfoCreate]] = []
+
+    @field_validator('added_by', mode='before')
+    def check_added_by(cls, v, values):
+        if isinstance(v, User):
+            return UserResponse.model_validate(v, from_attributes=True)
+        return v

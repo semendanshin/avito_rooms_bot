@@ -1,12 +1,16 @@
 import pprint
 
-from telegram import Update, Bot, Message, ReplyKeyboardMarkup, InlineKeyboardMarkup
+from telegram import Update, Message, ReplyKeyboardMarkup, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.ext import ConversationHandler
 from avito_parser import scrape_avito_room_ad, TooManyRequests, AvitoScrapingException
-from database.types import RoomInfoCreate, DataToGather, RoomCreate, AdvertisementCreate, AdvertisementResponse
-from database.enums import AdvertisementStatus, EntranceType, ViewType, ToiletType, RoomType
-from bot.utils.utils import cadnum_to_id, validate_message_text, delete_messages
+from database.types import RoomInfoCreate, DataToGather, RoomCreate, AdvertisementCreate
+from database.enums import EntranceType, ViewType, ToiletType, RoomType
+from bot.utils.utils import (
+    cadnum_to_id,
+    validate_message_text,
+    delete_messages,
+)
 from bot.utils.dadata_repository import dadata
 from bot.service import user as user_service
 from bot.service import room as room_service
@@ -14,6 +18,7 @@ from bot.service import room_info as room_info_service
 from bot.service import advertisement as advertisement_service
 
 from pydantic import ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from typing import Optional
 from logging import getLogger
@@ -21,22 +26,20 @@ import re
 
 from .manage_data import (
     AddRoomDialogStates,
+    fill_data_from_advertisement_template,
     fill_first_room_template,
     fill_parsed_room_template,
-    fill_data_from_advertisement_template,
 )
-from .static_text import DISPATCHER_USERNAME_TEMPLATE, FIO_TEMPLATE
 from .keyboards import (
     get_ad_editing_keyboard,
     get_entrance_type_keyboard,
-    get_send_or_edit_keyboard,
     get_view_type_keyboard,
     get_toilet_type_keyboard,
     get_review_keyboard,
     get_yes_or_no_keyboard,
     get_delete_keyboard,
     get_house_is_historical_keyboard,
-    get_plan_inspection_keyboard,
+    get_send_or_edit_keyboard,
 )
 
 logger = getLogger(__name__)
@@ -785,7 +788,7 @@ async def send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = context.user_data[update.effective_message.id]
 
     try:
-        session = context.session
+        session: AsyncSession = context.session
     except AttributeError:
         raise Exception('Session is not in context')
 
@@ -862,24 +865,13 @@ async def send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     advertisement = await advertisement_service.create_advertisement(session, advertisement_create)
 
     await session.commit()
+    await session.refresh(advertisement, attribute_names=['added_by'])
+    await session.refresh(advertisement, attribute_names=['added_at'])
 
-    await update.callback_query.answer(
-        text='Объявление добавлено',
-        show_alert=True,
-    )
+    data.added_by = advertisement.added_by
+    data.added_at = advertisement.added_at
 
     text = get_appropriate_text(data)
-    if advertisement.added_by:
-        fio = FIO_TEMPLATE.format(
-            first_name=advertisement.added_by.system_first_name if advertisement.added_by.system_first_name else '',
-            last_name_letter=advertisement.added_by.system_last_name[
-                0] if advertisement.added_by.system_last_name else '',
-            sur_name_letter=advertisement.added_by.system_sur_name[0] if advertisement.added_by.system_sur_name else '',
-        )
-        text += DISPATCHER_USERNAME_TEMPLATE.format(
-            fio=fio,
-            date=advertisement.added_at.strftime('%d.%m'),
-        )
 
     admins = await user_service.get_admins(session)
     for admin in admins:
@@ -892,6 +884,10 @@ async def send(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     await update.effective_message.delete()
+    await update.callback_query.answer(
+        text='Объявление добавлено',
+        show_alert=True,
+    )
 
     del context.user_data[update.effective_message.id]
 
@@ -928,82 +924,6 @@ async def cancel_info_adding(update: Update, context: ContextTypes.DEFAULT_TYPE)
         'Отмена добавления информации (данные не сохранены)',
     )
     return ConversationHandler.END
-
-
-async def send_advertisement(session, bot: Bot, advertisement_id: int, user_id: int):
-    advertisement = await advertisement_service.get_advertisement(session, advertisement_id)
-    await session.refresh(advertisement, attribute_names=["room"])
-    await session.refresh(advertisement.room, attribute_names=["rooms_info"])
-    advertisement = AdvertisementResponse.model_validate(advertisement)
-
-    data = DataToGather(
-        **advertisement.model_dump(),
-        **advertisement.room.model_dump(),
-    )
-
-    text = get_appropriate_text(data)
-    if advertisement.added_by:
-        fio = FIO_TEMPLATE.format(
-            first_name=advertisement.added_by.system_first_name if advertisement.added_by.system_first_name else '',
-            last_name_letter=advertisement.added_by.system_last_name[
-                0] if advertisement.added_by.system_last_name else '',
-            sur_name_letter=advertisement.added_by.system_sur_name[0] if advertisement.added_by.system_sur_name else '',
-        )
-        text += DISPATCHER_USERNAME_TEMPLATE.format(
-            fio=fio,
-            date=advertisement.added_at.strftime('%d.%m'),
-        )
-
-    await bot.send_photo(
-        chat_id=user_id,
-        photo=data.plan_telegram_file_id,
-        reply_markup=get_plan_inspection_keyboard(advertisement_id=advertisement.advertisement_id),
-        caption=text,
-        parse_mode='HTML',
-    )
-
-
-async def view_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        session = context.session
-    except AttributeError:
-        raise Exception('Session is not in context')
-
-    advertisement_id = int(update.callback_query.data.split('_')[-1])
-
-    try:
-        status = AdvertisementStatus[update.callback_query.data.split('_')[-2]]
-    except ValueError:
-        await update.effective_message.reply_text(
-            "Пропускаю"
-        )
-    else:
-        await advertisement_service.update_advertisement_status(
-            session,
-            advertisement_id,
-            status,
-            update.effective_user.id,
-        )
-
-        await session.commit()
-
-        if status == AdvertisementStatus.VIEWED:
-            await update.callback_query.answer(
-                'Отправлено диспетчеру',
-                show_alert=True,
-            )
-
-            advertisement = await advertisement_service.get_advertisement(session, advertisement_id)
-            dispatcher = await user_service.get_user(session, advertisement.added_by_id)
-            await send_advertisement(session, context.bot, advertisement_id, dispatcher.id)
-        elif status == AdvertisementStatus.CANCELED:
-            await update.callback_query.answer(
-                'Объявление помечено как отмененное',
-                show_alert=True,
-            )
-
-    await delete_messages(context)
-    await update.effective_message.delete()
 
 
 async def show_data_from_ad(update: Update, context: ContextTypes.DEFAULT_TYPE):

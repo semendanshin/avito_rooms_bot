@@ -8,6 +8,7 @@ import re
 
 logger = getLogger(__name__)
 
+
 def cadnum_to_id(cadnum: str) -> int:
     return int(cadnum.replace(':', '')[-8:])
 
@@ -35,3 +36,8 @@ async def delete_messages(context: ContextTypes.DEFAULT_TYPE):
     for message in context.user_data.get("messages_to_delete", []):
         await delete_message_or_skip(message)
     context.user_data["messages_to_delete"] = []
+
+
+def structure_buttons(buttons: list, row_width: int = 2) -> list:
+    result = [buttons[i:i + row_width] for i in range(0, len(buttons), row_width)]
+    return result

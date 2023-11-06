@@ -9,7 +9,7 @@ from telegram.ext import (
     PersistenceInput,
     filters,
 )
-from telegram import Update, BotCommand
+from telegram import Update
 
 from bot.middlewares import Middleware, SessionMiddleware, UserMiddleware
 
@@ -20,6 +20,7 @@ from bot.handlers.rooms import handlers as rooms_handlers
 from bot.handlers.role import handlers as role_handlers
 from bot.handlers.inspection_planing import handlers as inspection_planing_handlers
 from bot.handlers.calculations import handlers as calculations_handlers
+from bot.handlers.review import handlers as review_handlers
 
 from bot.handlers.onboarding.static_text import (
     ADD_ROOM_KEYBOARD_TEXT,
@@ -36,7 +37,6 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 
 import logging
 from logging.handlers import RotatingFileHandler
-import asyncio
 
 
 logging.basicConfig(
@@ -255,7 +255,7 @@ def main():
     )
 
     app.add_handler(CallbackQueryHandler(
-        rooms_handlers.view_advertisement,
+        review_handlers.view_advertisement,
         pattern=r'review_.*',
     ))
 

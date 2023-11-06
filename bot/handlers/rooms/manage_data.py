@@ -1,7 +1,8 @@
 from enum import Enum
 from database.types import DataToGather
 from .static_text import (FIRST_ROOM_TEMPLATE, PARSED_ROOM_TEMPLATE, CONTACT_INFO_TEMPLATE, ADDITIONAL_INFO,
-                          AVITO_URL_TEMPLATE, DATA_FROM_ADVERTISEMENT_TEMPLATE)
+                          AVITO_URL_TEMPLATE, DATA_FROM_ADVERTISEMENT_TEMPLATE, FIO_TEMPLATE,
+                          DISPATCHER_USERNAME_TEMPLATE)
 
 
 class AddRoomDialogStates(Enum):
@@ -101,7 +102,7 @@ def fill_first_room_template(data: DataToGather) -> str:
         ]
     ) if data.rooms_info else ''
 
-    return FIRST_ROOM_TEMPLATE.format(
+    text = FIRST_ROOM_TEMPLATE.format(
         address=str(data.address),
         flat_number=data.flat_number if data.flat_number else '',
         cadastral_number=data.cadastral_number if data.cadastral_number else '',
@@ -126,3 +127,17 @@ def fill_first_room_template(data: DataToGather) -> str:
         is_historical='памятник' if data.house_is_historical else '',
         url=str(data.url),
     )
+
+    if data.added_by:
+        fio = FIO_TEMPLATE.format(
+            first_name=data.added_by.system_first_name if data.added_by.system_first_name else '',
+            last_name_letter=data.added_by.system_last_name[
+                0] if data.added_by.system_last_name else '',
+            sur_name_letter=data.added_by.system_sur_name[0] if data.added_by.system_sur_name else '',
+        )
+        text += DISPATCHER_USERNAME_TEMPLATE.format(
+            fio=fio,
+            date=data.added_at.strftime('%d.%m'),
+        )
+
+    return text
