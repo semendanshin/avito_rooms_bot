@@ -9,7 +9,7 @@ from bot.service import user as user_service
 
 from .static_text import INSPECTION_PLANING_TEMPLATE
 from .manage_data import InspectionPlaningConversationSteps, InspectionTimePeriods
-from .keyboards import get_time_periods_keyboard, get_confirm_keyboard
+from .keyboards import get_time_periods_keyboard, get_confirm_keyboard, get_inspection_review_keyboard
 
 from bot.handlers.rooms.manage_data import fill_first_room_template
 
@@ -220,6 +220,7 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for user in await user_service.get_admins(session):
         await context.bot.send_photo(
             photo=data.plan_telegram_file_id,
+            reply_markup=get_inspection_review_keyboard(advertisement_id=advertisement.advertisement_id),
             chat_id=user.id,
             caption=text,
             parse_mode='HTML',

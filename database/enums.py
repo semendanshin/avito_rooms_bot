@@ -10,10 +10,15 @@ class UserRole(pyEnum):
 
 class AdvertisementStatus(pyEnum):
     NEW = 'New'
-    VIEWED = 'Viewed'
-    ASSIGNED = 'Assigned'
-    DONE = 'Done'
-    CANCELED = 'Canceled'
+    CANCELED = ' НЕТ'
+    VIEWED = 'СМ'
+    ASSIGNED = 'ПОК'
+    MAYBE = 'ДР'
+    DONE = 'РЕЗ'
+    CANCELED_AFTER_VIEW = 'ОТК'
+    BARGAIN = 'ТОРГ'
+    AGREED = 'ЗАД'
+    BOUGHT = 'КУП'
 
 
 class RoomType(pyEnum):

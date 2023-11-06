@@ -1,5 +1,7 @@
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 
+from database.types import AdvertisementStatus
+
 from .manage_data import InspectionTimePeriods
 
 
@@ -45,6 +47,28 @@ def get_confirm_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton(
                 'Подтвердили',
                 callback_data='confirm_plan_inspection',
+            ),
+        ],
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def get_inspection_review_keyboard(advertisement_id: int) -> InlineKeyboardMarkup:
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                'Торг',
+                callback_data=f'inspection_review_{advertisement_id}_{AdvertisementStatus.BARGAIN.name}',
+            ),
+            InlineKeyboardButton(
+                'ОТК',
+                callback_data=f'inspection_review_{advertisement_id}_{AdvertisementStatus.CANCELED_AFTER_VIEW.name}',
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                "Расчет",
+                callback_data=f'calculate_start_{advertisement_id}',
             ),
         ],
     ]
