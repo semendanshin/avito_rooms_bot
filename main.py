@@ -32,6 +32,7 @@ from bot.handlers.onboarding.static_text import (
 
 from bot.handlers.calculations.manage_data import CalculateRoomDialogStates
 from bot.handlers.review.manage_data import ReviewConversationStates
+from bot.handlers.role.manage_data import AddRoleConversationSteps
 
 from bot.config import config
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -227,22 +228,25 @@ def main():
                 )
             ],
             states={
-                role_handlers.AddRoleConversationSteps.GET_USERNAME: [
+                AddRoleConversationSteps.GET_USERNAME: [
                     MessageHandler(
                         filters=filters.TEXT & ~filters.Command(),
                         callback=role_handlers.save_username,
                     ),
                 ],
-                role_handlers.AddRoleConversationSteps.GET_ROLE: [
+                AddRoleConversationSteps.GET_ROLE: [
                     CallbackQueryHandler(role_handlers.save_role, pattern=r'set_role_.*'),
                 ],
-                role_handlers.AddRoleConversationSteps.GET_FIO: [
+                AddRoleConversationSteps.CONFIRM_ROLE: [
+                    CallbackQueryHandler(role_handlers.confirm_role, pattern=r'confirm_role_.*'),
+                ],
+                AddRoleConversationSteps.GET_FIO: [
                     MessageHandler(
                         filters=filters.TEXT & ~filters.Command(),
                         callback=role_handlers.save_fio,
                     ),
                 ],
-                role_handlers.AddRoleConversationSteps.GET_PHONE: [
+                AddRoleConversationSteps.GET_PHONE: [
                     MessageHandler(
                         filters=filters.TEXT & ~filters.Command(),
                         callback=role_handlers.save_phone,

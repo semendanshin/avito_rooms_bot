@@ -6,13 +6,14 @@ from database.enums import UserRole
 
 from bot.service import user as user_service
 
-from .keyboards import get_roles_keyboard
+from .keyboards import get_roles_keyboard, get_confirmation_keyboard
 from .manage_data import AddRoleConversationSteps
 
-from bot.utils.utils import validate_message_text, delete_message_or_skip
+from bot.utils.utils import validate_message_text, delete_message_or_skip, delete_messages
+
+from bot.handlers.rooms.manage_data import fill_user_fio_template
 
 import asyncio
-import re
 
 
 async def start_give_role(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -37,7 +38,8 @@ async def start_give_role(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'Введите юзернейм пользователя из телеграмма (начинается с @), которому хотите дать роль:',
     )
 
-    context.user_data['messages_to_delete'] = [update.message, message]
+    await delete_message_or_skip(update.message)
+    context.user_data['messages_to_delete'] = [message]
     context.user_data['effective_message'] = update.effective_message
     context.user_data[update.effective_message.id] = dict()
     return AddRoleConversationSteps.GET_USERNAME
@@ -58,11 +60,14 @@ async def save_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'Пользователь не найден. Убедитесь, что username введет правильно, и пользователь уже пользовался ботом. '
             'Чтобы отменить, напишите /cancel',
         )
-        context.user_data['messages_to_delete'] += [message]
+        context.user_data['messages_to_delete'] += [message, update.effective_message]
         return
 
     effective_message_id = context.user_data['effective_message'].id
     context.user_data[effective_message_id]['username'] = username
+
+    await delete_messages(context)
+    await delete_message_or_skip(update.effective_message)
 
     message = await update.message.reply_text(
         'Выберите роль:',
@@ -82,28 +87,55 @@ async def save_role(update: Update, context: ContextTypes.DEFAULT_TYPE):
     effective_message_id = context.user_data['effective_message'].id
     context.user_data[effective_message_id]['role'] = role
 
-    try:
-        session = context.session
-    except AttributeError:
-        raise Exception('Session is not in context')
+    username = context.user_data.get(effective_message_id, {}).get('username')
 
-    user = await user_service.get_user_by_username(session, context.user_data[effective_message_id]['username'])
+    await delete_messages(context)
 
-    if any([user.system_first_name, user.system_last_name, user.system_sur_name, user.phone_number]):
-        await update_user(update, context)
+    message = await update.effective_message.reply_text(
+        f'Вы уверены, что хотите дать пользователю @{username} роль {role.value}?',
+        reply_markup=get_confirmation_keyboard(),
+    )
+    context.user_data['messages_to_delete'] += [message]
+    return AddRoleConversationSteps.CONFIRM_ROLE
 
-        for message in context.user_data['messages_to_delete']:
-            await delete_message_or_skip(message)
-        await delete_message_or_skip(update.effective_message)
 
-        return ConversationHandler.END
+async def confirm_role(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.callback_query.answer()
+
+    answer = update.callback_query.data.split('_')[-1]
+
+    if answer.isdigit() and int(answer):
+
+        try:
+            session = context.session
+        except AttributeError:
+            raise Exception('Session is not in context')
+
+        effective_message_id = context.user_data['effective_message'].id
+        username = context.user_data[effective_message_id]['username']
+
+        user = await user_service.get_user_by_username(session, username)
+
+        await delete_messages(context)
+
+        if any([user.system_first_name, user.system_last_name, user.system_sur_name, user.phone_number]):
+            await update_user(update, context)
+
+            return ConversationHandler.END
+        else:
+            message = await update.effective_message.reply_text(
+                'Введите ФИО:',
+            )
+            context.user_data['messages_to_delete'] += [update.message, message]
+        return AddRoleConversationSteps.GET_FIO
     else:
+        await delete_messages(context)
         message = await update.effective_message.reply_text(
-            'Введите ФИО:',
+            'Выберите роль:',
+            reply_markup=get_roles_keyboard(),
         )
-        context.user_data['messages_to_delete'] += [update.message, message]
-
-    return AddRoleConversationSteps.GET_FIO
+        context.user_data['messages_to_delete'] += [message]
+        return AddRoleConversationSteps.GET_ROLE
 
 
 async def save_fio(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -120,6 +152,9 @@ async def save_fio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data[effective_message_id]['first_name'] = first_name
     context.user_data[effective_message_id]['last_name'] = last_name
     context.user_data[effective_message_id]['sur_name'] = sur_name
+
+    await delete_messages(context)
+    await delete_message_or_skip(update.effective_message)
 
     message = await update.message.reply_text(
         'Введите номер телефона:',
@@ -141,17 +176,16 @@ async def save_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if phone_number.startswith('9'):
         phone_number = '8' + phone_number
 
-    print(phone_number)
-
     effective_message_id = context.user_data['effective_message'].id
     data = context.user_data[effective_message_id]
     data['phone'] = phone_number
 
     await update_user(update, context)
 
-    for message in context.user_data['messages_to_delete']:
-        await delete_message_or_skip(message)
+    await delete_messages(context)
     await delete_message_or_skip(update.effective_message)
+
+    return ConversationHandler.END
 
 
 async def update_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -176,7 +210,7 @@ async def update_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await session.commit()
 
-    template = 'Добавлен новый пользователь: {role}\n{first_name} {last_name_letter}{sur_name_letter}\n{username}\n{phone_number}'
+    template = 'Добавлен/обновлен пользователь:\n{role}\n{first_name} {last_name_letter}{sur_name_letter}\n{username}\n{phone_number}'
 
     text = template.format(
         role=user.role.value,
@@ -187,18 +221,18 @@ async def update_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         phone_number=user.phone_number if user.phone_number else '',
     )
 
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         text,
     )
     await context.bot.send_message(
         chat_id=user.id,
-        text=f'Вам присвоена роль {user.role.value}',
+        text=f'Для вас установлена роль {user.role.value}',
     )
-
-    return ConversationHandler.END
 
 
 async def cancel_role_adding(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await delete_messages(context)
+    await delete_message_or_skip(update.effective_message)
     await update.message.reply_text(
         'Отмена',
     )
@@ -224,8 +258,10 @@ async def get_users_with_role(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     dispatchers = await user_service.get_dispatchers(session)
     admins = await user_service.get_admins(session)
+    agents = await user_service.get_agents(session)
 
     await update.message.reply_text(
-        'Управляющие:\n' + '\n'.join([f'@{el.username}' for el in admins]) + '\n\n' +
-        'Диспетчеры:\n' + '\n'.join([f'@{el.username}' for el in dispatchers]),
+        'Управляющие:\n' + '\n'.join([f'{fill_user_fio_template(el)} - @{el.username}' for el in admins]) + '\n\n' +
+        'Диспетчеры:\n' + '\n'.join([f'{fill_user_fio_template(el)} - @{el.username}' for el in dispatchers]) + '\n\n' +
+        'Агенты:\n' + '\n'.join([f'{fill_user_fio_template(el)} - @{el.username}' for el in agents]),
     )

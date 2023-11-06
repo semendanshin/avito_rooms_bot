@@ -23,3 +23,19 @@ def get_roles_keyboard() -> InlineKeyboardMarkup:
             ]
         ],
     )
+
+
+def get_confirmation_keyboard() -> InlineKeyboardMarkup:
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                'Нет',
+                callback_data=f'confirm_role_0',
+            ),
+            InlineKeyboardButton(
+                'Да',
+                callback_data=f'confirm_role_1',
+            ),
+        ]
+    ]
+    return InlineKeyboardMarkup(keyboard)
