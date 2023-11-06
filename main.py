@@ -37,9 +37,13 @@ from bot.handlers.role.manage_data import AddRoleConversationSteps
 from bot.config import config
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
-import logging
 from logging.handlers import RotatingFileHandler
+import logging
 
+import locale
+
+
+# locale.setlocale(locale.LC_ALL, 'ru_RU.UTF-8')
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

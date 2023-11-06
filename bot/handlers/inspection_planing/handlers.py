@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
-from database.models import User, Advertisement, Inspection
+from database.models import Advertisement, Inspection
 from database.types import AdvertisementStatus, DataToGather, AdvertisementResponse
 from bot.utils.utils import validate_message_text, delete_message_or_skip
 from bot.service import advertisement as advertisement_service
@@ -133,7 +133,20 @@ async def save_meting_tip(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     meting_tip_text = context.user_data["inspection"].meting_tip_text
 
+    try:
+        session: AsyncSession = context.session
+    except AttributeError:
+        raise AttributeError('Session not found in context')
+
+    advertisement = await advertisement_service.get_advertisement(
+        session,
+        context.user_data["inspection"].advertisement_id
+    )
+    await session.refresh(advertisement, attribute_names=["room"])
+
     text = INSPECTION_PLANING_TEMPLATE.format(
+        address=advertisement.room.address + ' кв. ' + advertisement.room.flat_number,
+        # day_of_week=context.user_data["inspection"].inspection_date.strftime("%a"),
         day_of_week='',
         inspection_date=context.user_data["inspection"].inspection_date.strftime("%d.%m"),
         inspection_period_start=context.user_data["inspection"].inspection_period_start.strftime("%H:%M"),
@@ -191,7 +204,9 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     text = fill_first_room_template(data)
-    text += INSPECTION_PLANING_TEMPLATE.format(
+    text += '\n' + INSPECTION_PLANING_TEMPLATE.format(
+        address=advertisement.room.address + ' кв. ' + advertisement.room.flat_number,
+        # day_of_week=inspection.inspection_date.strftime("%a"),
         day_of_week='',
         inspection_date=inspection.inspection_date.strftime("%d.%m"),
         inspection_period_start=inspection.inspection_period_start.strftime("%H:%M"),
