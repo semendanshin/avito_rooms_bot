@@ -467,6 +467,28 @@ async def change_cadastral_number(update: Update, context: ContextTypes.DEFAULT_
         data.cadastral_number = update.message.text
         context.user_data[effective_message_id] = data
 
+        address = dadata.get_clean_data_by_cadastral_number(update.message.text)
+
+        print(address.flat_area, address.flat_cadnum)
+        print(address.flat_area, address.flat_cadnum)
+
+        if address and address.flat_area:
+            message = await update.effective_message.reply_text(
+                text=f'Площадь квартиры: {address.flat_area} м2',
+            )
+            context.user_data["messages_to_delete"] += [message]
+            data.flat_area = float(address.flat_area.replace(',', '.'))
+            data.address = f'{address.street} {address.street_type} {address.house}'
+            context.user_data[effective_message_id] = data
+
+            message = await update.effective_message.reply_text(
+                text='Высота потолка (пропустить -> /0)',
+            )
+
+            context.user_data["messages_to_delete"] += [message]
+
+            return AddRoomDialogStates.FLAT_HEIGHT
+
     message = await update.effective_message.reply_text(
         text='Площадь квартиры (пропустить -> /0)',
     )

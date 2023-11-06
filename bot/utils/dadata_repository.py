@@ -2,102 +2,102 @@ import pprint
 
 from dadata import Dadata
 from pydantic import BaseModel
-from typing import Any
+from typing import Any, Optional
 from bot.config import config
 
 
 class DadataAddress(BaseModel):
-    source: str | None
-    result: str | None
-    postal_code: str | None
-    country: str | None
-    country_iso_code: str | None
-    federal_district: str | None
-    region_fias_id: str | None
-    region_kladr_id: str | None
-    region_iso_code: str | None
-    region_with_type: str | None
-    region_type: str | None
-    region_type_full: str | None
-    region: str | None
-    area_fias_id: str | None
-    area_kladr_id: str | None
-    area_with_type: str | None
-    area_type: str | None
-    area_type_full: str | None
-    area: str | None
-    city_fias_id: str | None
-    city_kladr_id: str | None
-    city_with_type: str | None
-    city_type: str | None
-    city_type_full: str | None
-    city: str | None
-    city_area: str | None
-    city_district_fias_id: str | None
-    city_district_kladr_id: str | None
-    city_district_with_type: str | None
-    city_district_type: str | None
-    city_district_type_full: str | None
-    city_district: str | None
-    settlement_fias_id: str | None
-    settlement_kladr_id: str | None
-    settlement_with_type: str | None
-    settlement_type: str | None
-    settlement_type_full: str | None
-    settlement: str | None
-    street_fias_id: str | None
-    street_kladr_id: str | None
-    street_with_type: str | None
-    street_type: str | None
-    street_type_full: str | None
-    street: str | None
-    stead_fias_id: str | None
-    stead_kladr_id: str | None
-    stead_cadnum: str | None
-    stead_type: str | None
-    stead_type_full: str | None
-    stead: str | None
-    house_fias_id: str | None
-    house_kladr_id: str | None
-    house_cadnum: str | None
-    house_type: str | None
-    house_type_full: str | None
-    house: str | None
-    block_type: str | None
-    block_type_full: str | None
-    block: str | None
-    entrance: str | None
-    floor: str | None
-    flat_fias_id: str | None
-    flat_cadnum: str | None
-    flat_type: str | None
-    flat_type_full: str | None
-    flat: str | None
-    flat_area: str | None
-    square_meter_price: str | None
-    flat_price: str | None
-    postal_box: str | None
-    fias_id: str | None
-    fias_code: str | None
-    fias_level: int | None
-    fias_actuality_state: str | None
-    kladr_id: str | None
-    capital_marker: str | None
-    okato: str | None
-    oktmo: str | None
-    tax_office: str | None
-    tax_office_legal: str | None
-    timezone: str | None
-    geo_lat: str | None
-    geo_lon: str | None
-    beltway_hit: str | None
-    beltway_distance: str | None
-    qc_geo: int | None
-    qc_complete: int | None
-    qc_house: int | None
-    qc: int | None
-    unparsed_parts: str | None
-    metro: list[dict[str, Any]] | None
+    source: Optional[str] = None
+    result: Optional[str] = None
+    postal_code: Optional[str] = None
+    country: Optional[str] = None
+    country_iso_code: Optional[str] = None
+    federal_district: Optional[str] = None
+    region_fias_id: Optional[str] = None
+    region_kladr_id: Optional[str] = None
+    region_iso_code: Optional[str] = None
+    region_with_type: Optional[str] = None
+    region_type: Optional[str] = None
+    region_type_full: Optional[str] = None
+    region: Optional[str] = None
+    area_fias_id: Optional[str] = None
+    area_kladr_id: Optional[str] = None
+    area_with_type: Optional[str] = None
+    area_type: Optional[str] = None
+    area_type_full: Optional[str] = None
+    area: Optional[str] = None
+    city_fias_id: Optional[str] = None
+    city_kladr_id: Optional[str] = None
+    city_with_type: Optional[str] = None
+    city_type: Optional[str] = None
+    city_type_full: Optional[str] = None
+    city: Optional[str] = None
+    city_area: Optional[str] = None
+    city_district_fias_id: Optional[str] = None
+    city_district_kladr_id: Optional[str] = None
+    city_district_with_type: Optional[str] = None
+    city_district_type: Optional[str] = None
+    city_district_type_full: Optional[str] = None
+    city_district: Optional[str] = None
+    settlement_fias_id: Optional[str] = None
+    settlement_kladr_id: Optional[str] = None
+    settlement_with_type: Optional[str] = None
+    settlement_type: Optional[str] = None
+    settlement_type_full: Optional[str] = None
+    settlement: Optional[str] = None
+    street_fias_id: Optional[str] = None
+    street_kladr_id: Optional[str] = None
+    street_with_type: Optional[str] = None
+    street_type: Optional[str] = None
+    street_type_full: Optional[str] = None
+    street: Optional[str] = None
+    stead_fias_id: Optional[str] = None
+    stead_kladr_id: Optional[str] = None
+    stead_cadnum: Optional[str] = None
+    stead_type: Optional[str] = None
+    stead_type_full: Optional[str] = None
+    stead: Optional[str] = None
+    house_fias_id: Optional[str] = None
+    house_kladr_id: Optional[str] = None
+    house_cadnum: Optional[str] = None
+    house_type: Optional[str] = None
+    house_type_full: Optional[str] = None
+    house: Optional[str] = None
+    block_type: Optional[str] = None
+    block_type_full: Optional[str] = None
+    block: Optional[str] = None
+    entrance: Optional[str] = None
+    floor: Optional[str] = None
+    flat_fias_id: Optional[str] = None
+    flat_cadnum: Optional[str] = None
+    flat_type: Optional[str] = None
+    flat_type_full: Optional[str] = None
+    flat: Optional[str] = None
+    flat_area: Optional[str] = None
+    square_meter_price: Optional[str] = None
+    flat_price: Optional[str] = None
+    postal_box: Optional[str] = None
+    fias_id: Optional[str] = None
+    fias_code: Optional[str] = None
+    fias_level: Optional[str] = None
+    fias_actuality_state: Optional[str] = None
+    kladr_id: Optional[str] = None
+    capital_marker: Optional[str] = None
+    okato: Optional[str] = None
+    oktmo: Optional[str] = None
+    tax_office: Optional[str] = None
+    tax_office_legal: Optional[str] = None
+    timezone: Optional[str] = None
+    geo_lat: Optional[str] = None
+    geo_lon: Optional[str] = None
+    beltway_hit: Optional[str] = None
+    beltway_distance: Optional[str] = None
+    qc_geo: Optional[str] = None
+    qc_complete: Optional[str] = None
+    qc_house: Optional[str] = None
+    qc: Optional[str] = None
+    unparsed_parts: Optional[str] = None
+    metro: Optional[list[dict[str, Any]]] = None
 
 
 class DadataRepository:
@@ -107,6 +107,12 @@ class DadataRepository:
     def get_clean_data(self, address: str) -> DadataAddress:
         response = self.dadata.clean("address", address)
         return DadataAddress(**response)
+
+    def get_clean_data_by_cadastral_number(self, cadastral_number: str) -> DadataAddress:
+        response = self.dadata.find_by_id("address", cadastral_number, 1)
+        if not response:
+            return DadataAddress()
+        return DadataAddress(**(response[0].get('data', {})))
 
 
 dadata = DadataRepository(config.dadata_token.get_secret_value(), config.dadata_secret.get_secret_value())

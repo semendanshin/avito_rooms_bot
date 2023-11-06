@@ -15,5 +15,11 @@ def get_roles_keyboard() -> InlineKeyboardMarkup:
                     callback_data=f'set_role_{UserRole.DISPATCHER.value}',
                 ),
             ],
+            [
+                InlineKeyboardButton(
+                    text=UserRole.USER.value,
+                    callback_data=f'set_role_{UserRole.USER.value}',
+                ),
+            ]
         ],
     )
