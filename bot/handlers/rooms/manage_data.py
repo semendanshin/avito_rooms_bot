@@ -24,13 +24,6 @@ class AddRoomDialogStates(Enum):
     MANUAL_ADDING = 'manual_adding'
 
 
-class CalculateRoomDialogStates(Enum):
-    PRICE_PER_METER_FOR_SELL = 'price_per_meter_for_sell'
-    AGENT_COMMISSION = 'agent_commission'
-    PRICE_PER_METER_FOR_BUY = 'price_per_meter_for_buy'
-    LIVING_PERIOD = 'living_period'
-
-
 def fill_data_from_advertisement_template(data: DataToGather) -> str:
     text = DATA_FROM_ADVERTISEMENT_TEMPLATE.format(
         room_area=data.room_area,

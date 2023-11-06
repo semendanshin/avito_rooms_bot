@@ -3,7 +3,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from database.models import User, Advertisement, Inspection
 from database.types import AdvertisementStatus, DataToGather, AdvertisementResponse
-from bot.utils.utils import validate_message_text
+from bot.utils.utils import validate_message_text, delete_message_or_skip
 from bot.service import advertisement as advertisement_service
 from bot.service import user as user_service
 
@@ -224,14 +224,18 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     for el in context.user_data.get('messages_to_delete', []):
-        await el.delete()
+        await delete_message_or_skip(el)
+
+    await delete_message_or_skip(update.effective_message)
 
     return ConversationHandler.END
 
 
 async def cancel_inspection_planing(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for el in context.user_data['messages_to_delete']:
-        await el.delete()
+        await delete_message_or_skip(el)
+
+    await delete_message_or_skip(update.effective_message)
 
     await update.message.reply_text(
         'Создание осмотра отменено'

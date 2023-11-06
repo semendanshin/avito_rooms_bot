@@ -145,18 +145,6 @@ def get_yes_or_no_keyboard(callback_pattern: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 
-def get_calculate_keyboard(advertisement_id: int) -> InlineKeyboardMarkup:
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                'Удалить',
-                callback_data=f'calculate_delete_{advertisement_id}',
-            ),
-        ],
-    ]
-    return InlineKeyboardMarkup(keyboard)
-
-
 def get_delete_keyboard(advertisement_id: int) -> InlineKeyboardMarkup:
     keyboard = [
         [

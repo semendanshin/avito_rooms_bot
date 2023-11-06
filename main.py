@@ -14,7 +14,13 @@ from telegram import Update, BotCommand
 from bot.middlewares import Middleware, SessionMiddleware, UserMiddleware
 
 from bot.utils.error import send_stacktrace_to_tg_chat
+
 from bot.handlers.onboarding import handlers as onboarding_handlers
+from bot.handlers.rooms import handlers as rooms_handlers
+from bot.handlers.role import handlers as role_handlers
+from bot.handlers.inspection_planing import handlers as inspection_planing_handlers
+from bot.handlers.calculations import handlers as calculations_handlers
+
 from bot.handlers.onboarding.static_text import (
     ADD_ROOM_KEYBOARD_TEXT,
     STATISTICS_KEYBOARD_TEXT,
@@ -22,9 +28,9 @@ from bot.handlers.onboarding.static_text import (
     SET_ROLE_KEYBOARD_TEXT,
     GET_ROLES_KEYBOARD_TEXT,
 )
-from bot.handlers.rooms import handlers as rooms_handlers
-from bot.handlers.role import handlers as role_handlers
-from bot.handlers.inspection_planing import handlers as inspection_planing_handlers
+
+from bot.handlers.calculations.manage_data import CalculateRoomDialogStates
+
 from bot.config import config
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
@@ -275,36 +281,36 @@ def main():
     app.add_handler(
         ConversationHandler(
             entry_points=[CallbackQueryHandler(
-                rooms_handlers.start_calculate_room,
+                calculations_handlers.start_calculate_room,
                 pattern=r'calculate_start.*',
             )],
             states={
-                rooms_handlers.CalculateRoomDialogStates.PRICE_PER_METER_FOR_BUY: [
+                CalculateRoomDialogStates.PRICE_PER_METER_FOR_BUY: [
                     MessageHandler(
                         filters=filters.TEXT & ~filters.Command(),
-                        callback=rooms_handlers.process_price_per_meter_for_buy,
+                        callback=calculations_handlers.process_price_per_meter_for_buy,
                     ),
                 ],
-                rooms_handlers.CalculateRoomDialogStates.AGENT_COMMISSION: [
+                CalculateRoomDialogStates.AGENT_COMMISSION: [
                     MessageHandler(
                         filters=filters.TEXT & ~filters.Command(),
-                        callback=rooms_handlers.process_agent_commission,
+                        callback=calculations_handlers.process_agent_commission,
                     ),
                 ],
-                rooms_handlers.CalculateRoomDialogStates.LIVING_PERIOD: [
+                CalculateRoomDialogStates.LIVING_PERIOD: [
                     MessageHandler(
                         filters=filters.TEXT & ~filters.Command(),
-                        callback=rooms_handlers.process_living_period,
+                        callback=calculations_handlers.process_living_period,
                     ),
                 ],
-                rooms_handlers.CalculateRoomDialogStates.PRICE_PER_METER_FOR_SELL: [
+                CalculateRoomDialogStates.PRICE_PER_METER_FOR_SELL: [
                     MessageHandler(
                         filters=filters.TEXT & ~filters.Command(),
-                        callback=rooms_handlers.process_price_per_meter_for_sell,
+                        callback=calculations_handlers.process_price_per_meter_for_sell,
                     ),
                 ],
             },
-            fallbacks=[CommandHandler('cancel', rooms_handlers.cancel_calculating)],
+            fallbacks=[CommandHandler('cancel', calculations_handlers.cancel_calculating)],
             name='calculate_room_handler',
             persistent=True,
         )
@@ -362,7 +368,7 @@ def main():
 
     app.add_handler(
         CallbackQueryHandler(
-            rooms_handlers.calculate_delete,
+            calculations_handlers.calculate_delete,
             pattern=r'calculate_delete_.*',
         )
     )
@@ -375,5 +381,4 @@ def main():
 
 
 if __name__ == '__main__':
-    # asyncio.run(main())
     main()
