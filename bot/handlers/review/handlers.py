@@ -162,13 +162,37 @@ async def attach_dispatcher(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     agents = await user_service.get_agents(session)
 
+    if len(agents) > 1:
+        message = await update.effective_message.reply_text(
+            'Выберите агента',
+            reply_markup=get_users_keyboard('attach_agent', agents),
+        )
+        context.user_data['messages_to_delete'] += [message]
+
+        return ReviewConversationStates.CHOOSE_AGENT
+
+    advertisement_id = context.user_data.get('review', {}).get('advertisement_id')
+
+    agent = agents[0]
+
+    context.user_data.get('review', {}).update(
+        {
+            'agent': agents[0],
+        }
+    )
+
+    dispatcher_fio = fill_user_fio_template(dispatcher)
+    agent_fio = fill_user_fio_template(agent)
+
     message = await update.effective_message.reply_text(
-        'Выберите агента',
-        reply_markup=get_users_keyboard('attach_agent', agents),
+        'Подтвердите выбор:\n'
+        f'Диспетчер: {dispatcher_fio}\n'
+        f'Агент: {agent_fio}',
+        reply_markup=get_confirmation_keyboard(advertisement_id),
     )
     context.user_data['messages_to_delete'] += [message]
 
-    return ReviewConversationStates.CHOOSE_AGENT
+    return ReviewConversationStates.CONFIRMATION
 
 
 async def attach_agent(update: Update, context: ContextTypes.DEFAULT_TYPE):
