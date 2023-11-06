@@ -187,6 +187,7 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     advertisement = await advertisement_service.get_advertisement(session, inspection.advertisement_id)
     await session.refresh(advertisement, attribute_names=["room"])
     await session.refresh(advertisement.room, attribute_names=["rooms_info"])
+    await session.refresh(advertisement, attribute_names=["added_by"])
     advertisement = AdvertisementResponse.model_validate(advertisement)
 
     data = DataToGather(

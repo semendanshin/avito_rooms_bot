@@ -56,30 +56,63 @@ async def view_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE)
             "Пропускаю"
         )
     else:
-        # await advertisement_service.update_advertisement_status(
-        #     session,
-        #     advertisement_id,
-        #     status,
-        #     update.effective_user.id,
-        # )
-        #
-        # await session.commit()
-
         if status == AdvertisementStatus.VIEWED:
-            dispatchers = await user_service.get_dispatchers(session)
-
-            message = await update.effective_message.reply_text(
-                'Выберите диспетчера',
-                reply_markup=get_users_keyboard('attach_dispatcher', dispatchers),
-            )
-            context.user_data['messages_to_delete'] += [message]
-
             context.user_data['review'] = {
                 'advertisement_id': advertisement_id,
                 'effective_message': update.effective_message,
             }
 
-            return ReviewConversationStates.CHOOSE_DISPATCHER
+            dispatchers = await user_service.get_dispatchers(session)
+
+            if len(dispatchers) > 1:
+                message = await update.effective_message.reply_text(
+                    'Выберите диспетчера',
+                    reply_markup=get_users_keyboard('attach_dispatcher', dispatchers),
+                )
+                context.user_data['messages_to_delete'] += [message]
+
+                return ReviewConversationStates.CHOOSE_DISPATCHER
+
+            dispatcher = dispatchers[0]
+
+            context.user_data.get('review', {}).update(
+                {
+                    'dispatcher': dispatcher,
+                }
+            )
+
+            agents = await user_service.get_agents(session)
+
+            if len(agents) > 1:
+                message = await update.effective_message.reply_text(
+                    'Выберите агента',
+                    reply_markup=get_users_keyboard('attach_agent', agents),
+                )
+                context.user_data['messages_to_delete'] += [message]
+
+                return ReviewConversationStates.CHOOSE_AGENT
+
+            agent = agents[0]
+
+            context.user_data.get('review', {}).update(
+                {
+                    'agent': agents[0],
+                }
+            )
+
+            dispatcher_fio = fill_user_fio_template(dispatcher)
+            agent_fio = fill_user_fio_template(agent)
+
+            message = await update.effective_message.reply_text(
+                'Подтвердите выбор:\n'
+                f'Диспетчер: {dispatcher_fio}\n'
+                f'Агент: {agent_fio}',
+                reply_markup=get_confirmation_keyboard(advertisement_id),
+            )
+            context.user_data['messages_to_delete'] += [message]
+
+            return ReviewConversationStates.CONFIRMATION
+
         elif status == AdvertisementStatus.CANCELED:
             await update.callback_query.answer(
                 'Объявление помечено как отмененное',
@@ -226,6 +259,7 @@ async def confirm_attachment(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         advertisement.pinned_dispatcher_id = dispatcher.id
         advertisement.pinned_agent_id = agent.id
+        advertisement.status = AdvertisementStatus.VIEWED
 
         await update.callback_query.answer(
             'Отправлено диспетчеру',
