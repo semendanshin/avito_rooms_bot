@@ -42,7 +42,6 @@ from .keyboards import (
     get_plan_inspection_keyboard,
 )
 
-
 logger = getLogger(__name__)
 
 
@@ -107,7 +106,8 @@ def get_appropriate_keyboard(advertisement_id: int, data: DataToGather) -> Inlin
         )
 
 
-async def edit_caption_or_text(message: Message, new_text: str, reply_markup: Optional[InlineKeyboardMarkup | ReplyKeyboardMarkup] = None):
+async def edit_caption_or_text(message: Message, new_text: str,
+                               reply_markup: Optional[InlineKeyboardMarkup | ReplyKeyboardMarkup] = None):
     try:
         if message.caption:
             await message.edit_caption(
@@ -365,7 +365,6 @@ async def start_change_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def change_flat_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     effective_message_id = context.user_data['effective_message_id']
     data = context.user_data[effective_message_id]
 
@@ -885,7 +884,8 @@ async def send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if advertisement.added_by:
         fio = FIO_TEMPLATE.format(
             first_name=advertisement.added_by.system_first_name if advertisement.added_by.system_first_name else '',
-            last_name_letter=advertisement.added_by.system_last_name[0] if advertisement.added_by.system_last_name else '',
+            last_name_letter=advertisement.added_by.system_last_name[
+                0] if advertisement.added_by.system_last_name else '',
             sur_name_letter=advertisement.added_by.system_sur_name[0] if advertisement.added_by.system_sur_name else '',
         )
         text += DISPATCHER_USERNAME_TEMPLATE.format(
@@ -957,7 +957,8 @@ async def send_advertisement(session, bot: Bot, advertisement_id: int, user_id: 
     if advertisement.added_by:
         fio = FIO_TEMPLATE.format(
             first_name=advertisement.added_by.system_first_name if advertisement.added_by.system_first_name else '',
-            last_name_letter=advertisement.added_by.system_last_name[0] if advertisement.added_by.system_last_name else '',
+            last_name_letter=advertisement.added_by.system_last_name[
+                0] if advertisement.added_by.system_last_name else '',
             sur_name_letter=advertisement.added_by.system_sur_name[0] if advertisement.added_by.system_sur_name else '',
         )
         text += DISPATCHER_USERNAME_TEMPLATE.format(
@@ -1057,13 +1058,29 @@ async def start_calculate_room(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def process_price_per_meter_for_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     if not await validate_message_text(update, context, r'\d+([.,]\d+)?'):
         return
 
     effective_message_id = context.user_data['effective_message_id']
     data = context.user_data[effective_message_id]
     data['price_per_meter_for_buy'] = float(update.message.text.replace(',', '.'))
+
+    message = await update.effective_message.reply_text(
+        'Комиссия АН, %',
+    )
+
+    context.user_data["messages_to_delete"] += [message, update.message]
+
+    return CalculateRoomDialogStates.AGENT_COMMISSION
+
+
+async def process_agent_commission(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await validate_message_text(update, context, r'\d+([.,]\d+)?'):
+        return
+
+    effective_message_id = context.user_data['effective_message_id']
+    data = context.user_data[effective_message_id]
+    data['agent_commission'] = float(update.message.text.replace(',', '.'))
 
     message = await update.effective_message.reply_text(
         'Срок расселения, мес',
@@ -1075,7 +1092,6 @@ async def process_price_per_meter_for_buy(update: Update, context: ContextTypes.
 
 
 async def process_living_period(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     if not await validate_message_text(update, context, r'\d+'):
         return
 
@@ -1093,34 +1109,23 @@ async def process_living_period(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def process_price_per_meter_for_sell(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     if not await validate_message_text(update, context, r'\d+([.,]\d+)?'):
         return
 
     effective_message_id = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
-    data['price_per_meter_for_sell'] = float(update.message.text.replace(',', '.'))
-
-    message = await update.effective_message.reply_text(
-        'Процент комиссии агентства, %',
+    context.user_data[effective_message_id]['price_per_meter_for_sell'] = float(
+        update.message.text.replace(',', '.')
     )
-
-    context.user_data["messages_to_delete"] += [message, update.message]
-
-    return CalculateRoomDialogStates.AGENT_COMMISSION
-
-
-async def process_agent_commission(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await validate_message_text(update, context, r'\d+([.,]\d+)?'):
-        return
-
-    effective_message_id = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
-    data['agent_commission'] = float(update.message.text.replace(',', '.'))
 
     await update.message.delete()
     await delete_messages(context)
 
+    await process_calculation(update, context)
+
+    return ConversationHandler.END
+
+
+async def process_calculation(update: Update, context: ContextTypes.DEFAULT_TYPE):
     effective_message_id = context.user_data['effective_message_id']
     data = context.user_data[effective_message_id]
 
@@ -1145,8 +1150,6 @@ async def process_agent_commission(update: Update, context: ContextTypes.DEFAULT
     agent_commission = data.get('agent_commission')
     living_period = data.get('living_period')
     price_per_meter_for_sell = data.get('price_per_meter_for_sell')
-    # living_period = 6
-    # price_per_meter_for_sell = 160
 
     if not price_per_meter_for_buy or not agent_commission or not living_period or not price_per_meter_for_sell:
         await update.callback_query.answer(
@@ -1171,7 +1174,8 @@ async def process_agent_commission(update: Update, context: ContextTypes.DEFAULT
 
     for el in advertisement.room.rooms_info:
         part_price = round(
-            price_per_meter_for_buy * advertisement.room.flat_area * el.area / total_living_area * (1 - agent_commission / 100),
+            price_per_meter_for_buy * advertisement.room.flat_area * el.area / total_living_area * (
+                        1 - agent_commission / 100),
         )
         rooms_info_text += room_info_template.format(
             room_number=el.number,
@@ -1186,7 +1190,8 @@ async def process_agent_commission(update: Update, context: ContextTypes.DEFAULT
                 price_per_meter_for_sell=int(price_per_meter_for_sell),
                 living_period=int(living_period),
                 profit_year_percent=round(
-                    (part_price - price_per_meter_for_sell * el.area) / (price_per_meter_for_sell * el.area) * 100 * (12 / living_period),
+                    (part_price - price_per_meter_for_sell * el.area) / (price_per_meter_for_sell * el.area) * 100 * (
+                                12 / living_period),
                 ),
                 room_price=round(el.area * price_per_meter_for_sell)
             )
@@ -1223,8 +1228,6 @@ async def process_agent_commission(update: Update, context: ContextTypes.DEFAULT
         reply_markup=get_calculate_keyboard(advertisement_id=advertisement.advertisement_id),
     )
 
-    return ConversationHandler.END
-
 
 async def calculate_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
@@ -1241,5 +1244,3 @@ async def cancel_calculating(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await asyncio.sleep(5)
     await message.delete()
     return ConversationHandler.END
-
-

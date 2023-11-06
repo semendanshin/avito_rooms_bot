@@ -97,6 +97,12 @@ async def save_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     status = match.group(4).upper()
     contact_name = match.group(5).capitalize()
 
+    if phone_number.startswith('+7'):
+        phone_number = phone_number[2:]
+
+    if phone_number.startswith('9'):
+        phone_number = '8' + phone_number
+
     context.user_data['inspection'].contact_phone = phone_number
     context.user_data['inspection'].contact_name = contact_name
     context.user_data['inspection'].contact_status = status

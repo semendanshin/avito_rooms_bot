@@ -43,7 +43,7 @@ def get_confirm_keyboard() -> InlineKeyboardMarkup:
                 callback_data='cancel_plan_inspection',
             ),
             InlineKeyboardButton(
-                'Подтвердить',
+                'Подтвердили',
                 callback_data='confirm_plan_inspection',
             ),
         ],

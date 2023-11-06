@@ -285,6 +285,12 @@ def main():
                         callback=rooms_handlers.process_price_per_meter_for_buy,
                     ),
                 ],
+                rooms_handlers.CalculateRoomDialogStates.AGENT_COMMISSION: [
+                    MessageHandler(
+                        filters=filters.TEXT & ~filters.Command(),
+                        callback=rooms_handlers.process_agent_commission,
+                    ),
+                ],
                 rooms_handlers.CalculateRoomDialogStates.LIVING_PERIOD: [
                     MessageHandler(
                         filters=filters.TEXT & ~filters.Command(),
@@ -295,12 +301,6 @@ def main():
                     MessageHandler(
                         filters=filters.TEXT & ~filters.Command(),
                         callback=rooms_handlers.process_price_per_meter_for_sell,
-                    ),
-                ],
-                rooms_handlers.CalculateRoomDialogStates.AGENT_COMMISSION: [
-                    MessageHandler(
-                        filters=filters.TEXT & ~filters.Command(),
-                        callback=rooms_handlers.process_agent_commission,
                     ),
                 ],
             },
