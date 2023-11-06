@@ -27,7 +27,7 @@ from .manage_data import (
     fill_parsed_room_template,
     fill_data_from_advertisement_template,
 )
-from .static_text import DISPATCHER_USERNAME_TEMPLATE, CALCULATING_RESULT_TEMPLATE
+from .static_text import DISPATCHER_USERNAME_TEMPLATE, CALCULATING_RESULT_TEMPLATE, FIO_TEMPLATE
 from .keyboards import (
     get_ad_editing_keyboard,
     get_entrance_type_keyboard,
@@ -883,8 +883,13 @@ async def send(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = get_appropriate_text(data)
     if advertisement.added_by:
+        fio = FIO_TEMPLATE.format(
+            first_name=advertisement.added_by.system_first_name if advertisement.added_by.system_first_name else '',
+            last_name_letter=advertisement.added_by.system_last_name[0] if advertisement.added_by.system_last_name else '',
+            sur_name_letter=advertisement.added_by.system_sur_name[0] if advertisement.added_by.system_sur_name else '',
+        )
         text += DISPATCHER_USERNAME_TEMPLATE.format(
-            username=advertisement.added_by.username,
+            fio=fio,
             date=advertisement.added_at.strftime('%d.%m'),
         )
 
@@ -950,8 +955,13 @@ async def send_advertisement(session, bot: Bot, advertisement_id: int, user_id: 
 
     text = get_appropriate_text(data)
     if advertisement.added_by:
+        fio = FIO_TEMPLATE.format(
+            first_name=advertisement.added_by.system_first_name if advertisement.added_by.system_first_name else '',
+            last_name_letter=advertisement.added_by.system_last_name[0] if advertisement.added_by.system_last_name else '',
+            sur_name_letter=advertisement.added_by.system_sur_name[0] if advertisement.added_by.system_sur_name else '',
+        )
         text += DISPATCHER_USERNAME_TEMPLATE.format(
-            username=advertisement.added_by.username,
+            fio=fio,
             date=advertisement.added_at.strftime('%d.%m'),
         )
 

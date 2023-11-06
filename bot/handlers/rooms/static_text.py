@@ -7,8 +7,7 @@ S-{flat_area}м2({living_area}={living_area_percent}%) h={flat_height}
 {rooms_info}
 
 {contact_phone} {contact_status}-{contact_name}
-<a href="{url}">АВИТО</a>
-"""
+<a href="{url}">АВИТО</a>"""
 
 CALCULATING_RESULT_TEMPLATE = """
 {address}, кв{flat_number} (КН{cadastral_number}) {is_historical}
@@ -51,15 +50,15 @@ ADDITIONAL_INFO = """
 AVITO_URL_TEMPLATE = """
 <a href="{url}">АВИТО</a>
 """
-DISPATCHER_USERNAME_TEMPLATE = """
-Добавлено пользователем @{username} - {date}
-"""
+DISPATCHER_USERNAME_TEMPLATE = """ - {date} {fio}"""
 ADMIN_USERNAME_TEMPLATE = """
 Оценено пользователем @{username}
 """
 AGENT_USERNAME_TEMPLATE = """
 Отсмотрено пользователем @{username}
 """
+FIO_TEMPLATE = "{first_name} {last_name_letter}{sur_name_letter}"
+
 # SECOND_ROOM_TEMPLATE = """
 # <b>Комната {room_area} м² в {number_of_rooms_in_flat}-к. кв, {flour}{room_under}/{flours_in_building} эт.</b>
 # <b>Цена:</b> {price} ₽

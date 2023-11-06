@@ -229,6 +229,18 @@ def main():
                 role_handlers.AddRoleConversationSteps.GET_ROLE: [
                     CallbackQueryHandler(role_handlers.save_role, pattern=r'set_role_.*'),
                 ],
+                role_handlers.AddRoleConversationSteps.GET_FIO: [
+                    MessageHandler(
+                        filters=filters.TEXT & ~filters.Command(),
+                        callback=role_handlers.save_fio,
+                    ),
+                ],
+                role_handlers.AddRoleConversationSteps.GET_PHONE: [
+                    MessageHandler(
+                        filters=filters.TEXT & ~filters.Command(),
+                        callback=role_handlers.save_phone,
+                    ),
+                ],
             },
             fallbacks=[CommandHandler('cancel', role_handlers.cancel_role_adding)],
             persistent=True,

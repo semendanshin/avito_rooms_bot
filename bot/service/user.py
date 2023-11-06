@@ -29,6 +29,19 @@ async def create_user(session: AsyncSession, user: UserCreate) -> User:
     return user
 
 
+async def update_user(session: AsyncSession, new_data: UserCreate) -> User:
+    user = await get_user(session, new_data.id)
+    if not user:
+        raise ValueError('This user does not exist')
+
+    for key, value in new_data.model_dump().items():
+        setattr(user, key, value)
+
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
 async def update_user_role(session: AsyncSession, username: str, role: UserRole) -> User:
     await session.execute(update(User).where(User.username == username).values(role=role))
     await session.commit()

@@ -18,6 +18,11 @@ class User(AsyncAttrs, Base):
     last_name = Column(String)
     role = Column(Enum(UserRole))
 
+    system_first_name = Column(String)
+    system_last_name = Column(String)
+    system_sur_name = Column(String)
+    phone_number = Column(String)
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     added_advertisements = relationship('Advertisement', back_populates='added_by', foreign_keys='Advertisement.added_by_id', lazy='select')

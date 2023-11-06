@@ -79,7 +79,7 @@ class DadataAddress(BaseModel):
     postal_box: Optional[str] = None
     fias_id: Optional[str] = None
     fias_code: Optional[str] = None
-    fias_level: Optional[str] = None
+    fias_level: Optional[int] = None
     fias_actuality_state: Optional[str] = None
     kladr_id: Optional[str] = None
     capital_marker: Optional[str] = None
@@ -92,10 +92,10 @@ class DadataAddress(BaseModel):
     geo_lon: Optional[str] = None
     beltway_hit: Optional[str] = None
     beltway_distance: Optional[str] = None
-    qc_geo: Optional[str] = None
-    qc_complete: Optional[str] = None
-    qc_house: Optional[str] = None
-    qc: Optional[str] = None
+    qc_geo: Optional[int] = None
+    qc_complete: Optional[int] = None
+    qc_house: Optional[int] = None
+    qc: Optional[int] = None
     unparsed_parts: Optional[str] = None
     metro: Optional[list[dict[str, Any]]] = None
 

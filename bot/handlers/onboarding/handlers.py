@@ -22,7 +22,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     elif user.role == UserRole.ADMIN:
         await update.message.reply_text(
-            'Вы админ',
+            'Вы управляющий',
             reply_markup=get_admin_keyboard(),
         )
     elif user.role == UserRole.DISPATCHER:

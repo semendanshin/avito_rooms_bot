@@ -12,4 +12,4 @@ ADD_ROOM_KEYBOARD_TEXT = 'Добавить комнату➕'
 CANCEL_KEYBOARD_TEXT = 'Отмена❌'
 
 SET_ROLE_KEYBOARD_TEXT = 'Дать роль👮‍'
-GET_ROLES_KEYBOARD_TEXT = 'Посмотреть роль👥'
+GET_ROLES_KEYBOARD_TEXT = 'Пользователи👥'

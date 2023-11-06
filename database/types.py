@@ -18,6 +18,11 @@ class UserResponse(BaseModel):
     last_name: Optional[str]
     role: UserRole
 
+    system_first_name: Optional[str]
+    system_last_name: Optional[str]
+    system_sur_name: Optional[str]
+    phone_number: Optional[str]
+
 
 class RoomInfoResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, use_enum_values=True, arbitrary_types_allowed=True)
@@ -99,6 +104,11 @@ class UserCreate(BaseModel):
     username: Optional[str] = ''
     first_name: Optional[str] = ''
     last_name: Optional[str] = ''
+    system_first_name: Optional[str] = ''
+    system_last_name: Optional[str] = ''
+    system_sur_name: Optional[str] = ''
+    phone_number: Optional[str] = ''
+
     role: UserRole = UserRole.USER
 
 
