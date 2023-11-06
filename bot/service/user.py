@@ -56,3 +56,8 @@ async def get_admins(session: AsyncSession) -> list[User]:
 async def get_dispatchers(session: AsyncSession) -> list[User]:
     result = await session.execute(select(User).filter(User.role == UserRole.DISPATCHER))
     return list(result.scalars().all())
+
+
+async def get_agents(session: AsyncSession) -> list[User]:
+    result = await session.execute(select(User).filter(User.role == UserRole.AGENT))
+    return list(result.scalars().all())

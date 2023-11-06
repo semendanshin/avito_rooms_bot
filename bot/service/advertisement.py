@@ -41,3 +41,21 @@ async def update_advertisement_status(
     advertisement.viewed_by_id = changed_by_user_id
     advertisement.viewed_at = func.now()
     return advertisement
+
+
+async def attach_dispatcher(session: AsyncSession, advertisement_id: int, user_id: int):
+    advertisement = await get_advertisement(session, advertisement_id)
+    if not advertisement:
+        raise ValueError('Advertisement not found')
+    advertisement.pinned_dispatcher_id = user_id
+    await session.commit()
+    return advertisement
+
+
+async def attach_agent(session: AsyncSession, advertisement_id: int, user_id: int):
+    advertisement = await get_advertisement(session, advertisement_id)
+    if not advertisement:
+        raise ValueError('Advertisement not found')
+    advertisement.pinned_agent_id = user_id
+    await session.commit()
+    return advertisement

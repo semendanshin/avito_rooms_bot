@@ -31,6 +31,7 @@ from bot.handlers.onboarding.static_text import (
 )
 
 from bot.handlers.calculations.manage_data import CalculateRoomDialogStates
+from bot.handlers.review.manage_data import ReviewConversationStates
 
 from bot.config import config
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -254,10 +255,39 @@ def main():
         )
     )
 
-    app.add_handler(CallbackQueryHandler(
-        review_handlers.view_advertisement,
-        pattern=r'review_.*',
-    ))
+    app.add_handler(
+        ConversationHandler(
+            entry_points=[
+                CallbackQueryHandler(
+                    review_handlers.view_advertisement,
+                    pattern=r'review_.*',
+                )
+            ],
+            states={
+                ReviewConversationStates.CHOOSE_DISPATCHER: [
+                    CallbackQueryHandler(
+                        review_handlers.attach_dispatcher,
+                        pattern=r'attach_dispatcher_.*',
+                    ),
+                ],
+                ReviewConversationStates.CHOOSE_AGENT: [
+                    CallbackQueryHandler(
+                        review_handlers.attach_agent,
+                        pattern=r'attach_agent_.*',
+                    ),
+                ],
+                ReviewConversationStates.CONFIRMATION: [
+                    CallbackQueryHandler(
+                        review_handlers.confirm_attachment,
+                        pattern=r'confirm_user_attachment_.*',
+                    ),
+                ],
+            },
+            fallbacks=[CommandHandler('cancel', review_handlers.cancel_attachment)],
+            name='review_handler',
+            persistent=True,
+        )
+    )
 
     app.add_handler(CallbackQueryHandler(
         rooms_handlers.delete_message_data_from_advertisement,

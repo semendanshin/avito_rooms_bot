@@ -1,5 +1,6 @@
 from enum import Enum
-from database.types import DataToGather
+from database.types import DataToGather, UserResponse
+from database.models import User
 from .static_text import (FIRST_ROOM_TEMPLATE, PARSED_ROOM_TEMPLATE, CONTACT_INFO_TEMPLATE, ADDITIONAL_INFO,
                           AVITO_URL_TEMPLATE, DATA_FROM_ADVERTISEMENT_TEMPLATE, FIO_TEMPLATE,
                           DISPATCHER_USERNAME_TEMPLATE)
@@ -80,6 +81,15 @@ def fill_parsed_room_template(data: DataToGather) -> str:
     return text
 
 
+def fill_user_fio_template(user: User | UserResponse) -> str:
+    return FIO_TEMPLATE.format(
+        first_name=user.system_first_name if user.system_first_name else '',
+        last_name_letter=user.system_last_name[
+            0] if user.system_last_name else '',
+        sur_name_letter=user.system_sur_name[0] if user.system_sur_name else '',
+    )
+
+
 def fill_first_room_template(data: DataToGather) -> str:
     living_area = round(sum([room.area for room in data.rooms_info]), 1) if data.rooms_info else ''
     living_area_percent = int(living_area / data.flat_area * 100) if data.flat_area and living_area else ''
@@ -129,12 +139,7 @@ def fill_first_room_template(data: DataToGather) -> str:
     )
 
     if data.added_by:
-        fio = FIO_TEMPLATE.format(
-            first_name=data.added_by.system_first_name if data.added_by.system_first_name else '',
-            last_name_letter=data.added_by.system_last_name[
-                0] if data.added_by.system_last_name else '',
-            sur_name_letter=data.added_by.system_sur_name[0] if data.added_by.system_sur_name else '',
-        )
+        fio = fill_user_fio_template(data.added_by)
         text += DISPATCHER_USERNAME_TEMPLATE.format(
             fio=fio,
             date=data.added_at.strftime('%d.%m'),
