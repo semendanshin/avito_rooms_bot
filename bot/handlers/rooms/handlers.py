@@ -10,6 +10,7 @@ from bot.utils.utils import (
     cadnum_to_id,
     validate_message_text,
     delete_messages,
+    delete_message_or_skip,
 )
 from bot.utils.dadata_repository import dadata
 from bot.service import user as user_service
@@ -203,9 +204,8 @@ async def add_room_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         address=result.address,
     )
 
-    await update.message.delete()
-    for message in context.user_data.get("messages_to_delete", []):
-        await message.delete()
+    await delete_messages(context)
+    await delete_message_or_skip(update.message)
 
     message = await update.message.reply_text(
         text=get_appropriate_text(data),
@@ -263,6 +263,7 @@ async def change_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     del context.user_data[effective_message_id]
     context.user_data[message.id] = data
+    context.user_data['last_message_id'] = message.id
     return ConversationHandler.END
 
 
@@ -335,6 +336,7 @@ async def change_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for message in context.user_data.get("messages_to_delete", []):
         await message.delete()
     context.user_data["messages_to_delete"] = []
+    context.user_data["last_message_id"] = context.user_data['effective_message'].message_id
     return ConversationHandler.END
 
 
