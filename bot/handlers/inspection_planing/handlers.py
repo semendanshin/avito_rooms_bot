@@ -3,7 +3,10 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from database.models import Advertisement, Inspection
 from database.types import AdvertisementStatus, DataToGather, AdvertisementResponse
+
 from bot.utils.utils import validate_message_text, delete_message_or_skip
+from bot.utils.resend_old_message import check_and_resend_old_message
+
 from bot.service import advertisement as advertisement_service
 from bot.service import user as user_service
 
@@ -19,6 +22,8 @@ import re
 
 
 async def start_inspection_planing(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    effective_message = await check_and_resend_old_message(update, context)
+
     await update.callback_query.answer()
 
     data = update.callback_query.data.split('_')[-1]
@@ -26,7 +31,7 @@ async def start_inspection_planing(update: Update, context: ContextTypes.DEFAULT
     context.user_data['inspection'] = Inspection()
     context.user_data['inspection'].advertisement_id = int(data)
 
-    context.user_data['effective_message'] = update.effective_message
+    context.user_data['effective_message'] = effective_message
 
     message = await update.callback_query.message.reply_text(
         'Введите дату осмотра в формате ДД.ММ'
@@ -219,13 +224,14 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     for user in await user_service.get_admins(session):
-        await context.bot.send_photo(
+        message = await context.bot.send_photo(
             photo=data.plan_telegram_file_id,
             reply_markup=get_inspection_review_keyboard(advertisement_id=advertisement.advertisement_id),
             chat_id=user.id,
             caption=text,
             parse_mode='HTML',
         )
+        context.bot_data[user.id] = message.id
 
     await update.effective_message.edit_reply_markup(reply_markup=None)
     effective_message = context.user_data['effective_message']

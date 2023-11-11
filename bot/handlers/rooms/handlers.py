@@ -12,6 +12,7 @@ from bot.utils.utils import (
     delete_messages,
     delete_message_or_skip,
 )
+from bot.utils.resend_old_message import check_and_resend_old_message
 from bot.utils.dadata_repository import dadata
 from bot.service import user as user_service
 from bot.service import room as room_service
@@ -215,17 +216,21 @@ async def add_room_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     context.user_data[message.id] = data
+    context.bot_data[update.effective_user.id] = message.id
 
     return ConversationHandler.END
 
 
 async def start_change_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    effective_message = await check_and_resend_old_message(update, context)
+
     await update.callback_query.answer()
+
     message = await update.effective_message.reply_text(
         'Вставьте картинку с планом',
     )
     plan_is_filled, phone_is_filled, info_is_filled = what_is_filled(context.user_data[update.effective_message.id])
-    await update.effective_message.edit_reply_markup(
+    await effective_message.edit_reply_markup(
         reply_markup=get_ad_editing_keyboard(
             advertisement_id=-1,
             plan_is_active=True,
@@ -234,7 +239,6 @@ async def start_change_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ),
     )
     context.user_data.update({'message_to_delete': message})
-    context.user_data.update({'effective_message_id': update.effective_message.id})
     return AddRoomDialogStates.FLAT_PLAN
 
 
@@ -263,12 +267,15 @@ async def change_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     del context.user_data[effective_message_id]
     context.user_data[message.id] = data
-    context.user_data['last_message_id'] = message.id
+    context.bot_data[update.effective_user.id] = message.id
     return ConversationHandler.END
 
 
 async def start_change_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    effective_message = await check_and_resend_old_message(update, context)
+
     await update.callback_query.answer()
+
     advertisement_id = int(update.callback_query.data.split('_')[-1])
     if advertisement_id == -1:
         message = await update.effective_message.reply_text(
@@ -276,7 +283,7 @@ async def start_change_phone(update: Update, context: ContextTypes.DEFAULT_TYPE)
             parse_mode='HTML',
         )
         plan_is_filled, phone_is_filled, info_is_filled = what_is_filled(context.user_data[update.effective_message.id])
-        await update.effective_message.edit_reply_markup(
+        await effective_message.edit_reply_markup(
             reply_markup=get_ad_editing_keyboard(
                 advertisement_id=-1,
                 plan_is_filled=plan_is_filled,
@@ -285,8 +292,6 @@ async def start_change_phone(update: Update, context: ContextTypes.DEFAULT_TYPE)
             ),
         )
         context.user_data["messages_to_delete"] = [message]
-        context.user_data.update({'effective_message_id': update.effective_message.id})
-        context.user_data.update({'effective_message': update.effective_message})
         return AddRoomDialogStates.CONTACT_PHONE
 
 
@@ -336,30 +341,29 @@ async def change_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for message in context.user_data.get("messages_to_delete", []):
         await message.delete()
     context.user_data["messages_to_delete"] = []
-    context.user_data["last_message_id"] = context.user_data['effective_message'].message_id
+    context.bot_data[update.effective_user.id] = effective_message_id
     return ConversationHandler.END
 
 
 async def start_change_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    effective_message = await check_and_resend_old_message(update, context)
+
     await update.callback_query.answer()
-    advertisement_id = int(update.callback_query.data.split('_')[-1])
-    if advertisement_id == -1:
-        plan_is_filled, phone_is_filled, info_is_filled = what_is_filled(context.user_data[update.effective_message.id])
-        await update.effective_message.edit_reply_markup(
-            reply_markup=get_ad_editing_keyboard(
-                advertisement_id=-1,
-                plan_is_filled=plan_is_filled,
-                phone_is_filled=phone_is_filled,
-                info_is_active=True,
-            ),
-        )
-        message = await update.effective_message.reply_text(
-            'Номер квартиры (пропустить -> /0)',
-        )
-        context.user_data["messages_to_delete"] = [message]
-        context.user_data["effective_message_id"] = update.effective_message.id
-        context.user_data["effective_message"] = update.effective_message
-        return AddRoomDialogStates.FLAT_NUMBER
+
+    plan_is_filled, phone_is_filled, info_is_filled = what_is_filled(context.user_data[effective_message.id])
+    await effective_message.edit_reply_markup(
+        reply_markup=get_ad_editing_keyboard(
+            advertisement_id=-1,
+            plan_is_filled=plan_is_filled,
+            phone_is_filled=phone_is_filled,
+            info_is_active=True,
+        ),
+    )
+    message = await update.effective_message.reply_text(
+        'Номер квартиры (пропустить -> /0)',
+    )
+    context.user_data["messages_to_delete"] = [message]
+    return AddRoomDialogStates.FLAT_NUMBER
 
 
 async def change_flat_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -777,7 +781,7 @@ async def change_rooms_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update_message_and_delete_messages(update, context, data)
 
-    keyboard = get_appropriate_keyboard(0, data)
+    keyboard = get_appropriate_keyboard(-1, data)
 
     await edit_caption_or_text(
         context.user_data['effective_message'],
@@ -786,6 +790,8 @@ async def change_rooms_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     del context.user_data['effective_message_id']
+
+    context.bot_data[update.effective_user.id] = context.user_data['effective_message']
 
     return ConversationHandler.END
 
@@ -882,13 +888,14 @@ async def send(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     admins = await user_service.get_admins(session)
     for admin in admins:
-        await context.bot.send_photo(
+        message = await context.bot.send_photo(
             chat_id=admin.id,
             photo=data.plan_telegram_file_id,
             caption=text,
             reply_markup=get_review_keyboard(advertisement_id=advertisement.id),
             parse_mode='HTML',
         )
+        context.bot_data[admin.id] = message.id
 
     await update.effective_message.delete()
     await update.callback_query.answer(

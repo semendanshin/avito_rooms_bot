@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
 from bot.utils.utils import validate_message_text, delete_messages
+from bot.utils.resend_old_message import check_and_resend_old_message
 
 from bot.service import advertisement as advertisement_service
 
@@ -15,17 +16,19 @@ import asyncio
 
 
 async def start_calculate_room(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    effective_message = await check_and_resend_old_message(update, context)
+
     await update.callback_query.answer()
     data = update.callback_query.data
     ad_id = int(data.split('_')[-1])
-    context.user_data[update.effective_message.id] = {'ad_id': ad_id}
+    context.user_data[effective_message.id] = {'ad_id': ad_id}
 
     message = await update.effective_message.reply_text(
         'Цена 1м2 квартиры на продажу, тыс.руб',
     )
 
     context.user_data["messages_to_delete"] = [message]
-    context.user_data['effective_message_id'] = update.effective_message.id
+    context.user_data['effective_message_id'] = effective_message.id
 
     return CalculateRoomDialogStates.PRICE_PER_METER_FOR_BUY
 

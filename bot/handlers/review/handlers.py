@@ -5,9 +5,10 @@ from bot.service import advertisement as advertisement_service
 from bot.service import user as user_service
 
 from bot.utils.utils import delete_messages, delete_message_or_skip
+from bot.utils.resend_old_message import check_and_resend_old_message
 
 from bot.handlers.rooms.handlers import get_appropriate_text
-from bot.handlers.rooms.manage_data import fill_user_fio_template
+from bot.handlers.rooms.manage_data import fill_user_fio_template, get_data_by_advertisement_id
 
 from database.types import DataToGather, AdvertisementResponse
 from database.enums import AdvertisementStatus, UserRole
@@ -19,30 +20,23 @@ from .manage_data import ReviewConversationStates
 
 
 async def send_advertisement(session, bot: Bot, advertisement_id: int, user_id: int):
-    advertisement = await advertisement_service.get_advertisement(session, advertisement_id)
-    await session.refresh(advertisement, attribute_names=["room"])
-    await session.refresh(advertisement.room, attribute_names=["rooms_info"])
-    await session.refresh(advertisement, attribute_names=["added_by"])
-    advertisement = AdvertisementResponse.model_validate(advertisement)
-
-    data = DataToGather(
-        **advertisement.model_dump(),
-        **advertisement.room.model_dump(),
-    )
+    data = await get_data_by_advertisement_id(session, advertisement_id)
 
     text = get_appropriate_text(data)
 
-    await bot.send_photo(
+    message = await bot.send_photo(
         chat_id=user_id,
         photo=data.plan_telegram_file_id,
-        reply_markup=get_plan_inspection_keyboard(advertisement_id=advertisement.advertisement_id),
+        reply_markup=get_plan_inspection_keyboard(advertisement_id=advertisement_id),
         caption=text,
         parse_mode='HTML',
     )
 
+    return message
+
 
 async def view_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["messages_to_delete"] = [update.effective_message]
+    effective_message = await check_and_resend_old_message(update, context)
 
     try:
         session = context.session
@@ -59,9 +53,11 @@ async def view_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
     else:
         if status == AdvertisementStatus.VIEWED:
+            await update.callback_query.answer()
+
             context.user_data['review'] = {
                 'advertisement_id': advertisement_id,
-                'effective_message': update.effective_message,
+                'effective_message': effective_message,
             }
 
             dispatchers = await user_service.get_dispatchers(session)
@@ -73,12 +69,12 @@ async def view_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 context.user_data['messages_to_delete'] += [message]
 
                 await delete_messages(context)
-                await delete_message_or_skip(update.effective_message)
+                await delete_message_or_skip(effective_message)
 
                 return ConversationHandler.END
 
             if len(dispatchers) > 1:
-                message = await update.effective_message.reply_text(
+                message = await effective_message.reply_text(
                     'Выберите диспетчера',
                     reply_markup=get_users_keyboard('attach_dispatcher', dispatchers),
                 )
@@ -144,6 +140,7 @@ async def view_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
 
             await delete_messages(context)
+            await delete_message_or_skip(effective_message)
             await update.effective_message.delete()
 
             return ConversationHandler.END
@@ -327,7 +324,9 @@ async def confirm_attachment(update: Update, context: ContextTypes.DEFAULT_TYPE)
             show_alert=True,
         )
 
-        await send_advertisement(session, context.bot, advertisement_id, dispatcher.id)
+        message = await send_advertisement(session, context.bot, advertisement_id, dispatcher.id)
+
+        context.bot_data[dispatcher.id] = message.id
 
         await session.commit()
 

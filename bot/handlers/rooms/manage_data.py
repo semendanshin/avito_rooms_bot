@@ -183,6 +183,7 @@ async def get_data_by_advertisement(advertisement: Advertisement) -> DataToGathe
         flours_in_building=advertisement.room.flours_in_building,
         address=advertisement.room.address,
         flat_number=advertisement.room.flat_number,
+        plan_telegram_file_id=advertisement.room.plan_telegram_file_id,
         cadastral_number=advertisement.room.cadastral_number,
         flat_height=advertisement.room.flat_height,
         flat_area=advertisement.room.flat_area,

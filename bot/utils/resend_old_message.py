@@ -1,10 +1,9 @@
 import logging
-from telegram import Update
+from telegram import Update, Message
 from telegram.ext import ContextTypes
 
 from database.types import DataToGather
 
-from bot.handlers.rooms.handlers import get_appropriate_text, get_appropriate_keyboard, edit_caption_or_text
 from bot.utils.utils import delete_message_or_skip
 
 from bot.service import advertisement as advertisement_service
@@ -21,8 +20,11 @@ from bot.handlers.inspection_planing.static_text import INSPECTION_PLANING_TEMPL
 from database.enums import AdvertisementStatus
 
 
-async def resend_old_message(update: Update, context: ContextTypes):
+async def resend_old_message(update: Update, context: ContextTypes) -> Message:
+    from bot.handlers.rooms.handlers import get_appropriate_text, get_appropriate_keyboard, edit_caption_or_text
+
     advertisement_id = int(update.callback_query.data.split('_')[-1])
+    print(advertisement_id)
     if advertisement_id == -1:
         effective_message_id = update.effective_message.message_id
         data: DataToGather = context.user_data[effective_message_id]
@@ -31,29 +33,35 @@ async def resend_old_message(update: Update, context: ContextTypes):
         keyboard = get_appropriate_keyboard(-1, data)
 
         if data.plan_telegram_file_id:
-            await update.effective_message.reply_photo(
+            message = await update.effective_message.reply_photo(
                 photo=data.plan_telegram_file_id,
                 caption=text,
                 reply_markup=keyboard,
                 parse_mode='HTML',
             )
         else:
-            await update.effective_message.reply_text(
+            message = await update.effective_message.reply_text(
                 text=text,
                 reply_markup=keyboard,
                 parse_mode='HTML',
+                disable_web_page_preview=True,
             )
 
-        return
+        context.user_data[message.id] = data
     else:
         advertisement = await advertisement_service.get_advertisement(context.session, advertisement_id)
+        await context.session.refresh(advertisement, ['room'])
+        await context.session.refresh(advertisement.room, ['rooms_info'])
+        await context.session.refresh(advertisement, ['added_by'])
 
         if advertisement:
+            print(advertisement.status)
+
             data = await get_data_by_advertisement(advertisement)
             text = get_appropriate_text(data)
 
             if advertisement.status == AdvertisementStatus.NEW:
-                await context.bot.send_photo(
+                message = await context.bot.send_photo(
                     chat_id=update.effective_chat.id,
                     photo=advertisement.room.plan_telegram_file_id,
                     caption=text,
@@ -62,7 +70,7 @@ async def resend_old_message(update: Update, context: ContextTypes):
                 )
             if advertisement.status == AdvertisementStatus.VIEWED:
 
-                await context.bot.send_photo(
+                message = await context.bot.send_photo(
                     chat_id=update.effective_chat.id,
                     photo=advertisement.room.plan_telegram_file_id,
                     caption=text,
@@ -90,7 +98,7 @@ async def resend_old_message(update: Update, context: ContextTypes):
                     meting_tip_text=inspection.meting_tip_text,
                 )
 
-                await context.bot.send_photo(
+                message = await context.bot.send_photo(
                     photo=data.plan_telegram_file_id,
                     reply_markup=get_inspection_review_keyboard(advertisement_id=advertisement.advertisement_id),
                     chat_id=update.effective_chat.id,
@@ -98,8 +106,28 @@ async def resend_old_message(update: Update, context: ContextTypes):
                     parse_mode='HTML',
                 )
 
-    if not delete_message_or_skip(update.effective_message):
+    if not await delete_message_or_skip(update.effective_message):
         await edit_caption_or_text(
             update.effective_message,
-            'Ваше объявление было перенесено вниз.',
+            'Объявление было перенесено вниз.',
         )
+
+    # await update.callback_query.answer(
+    #     'Объявление было перенесено вниз.',
+    #     show_alert=True,
+    # )
+
+    context.bot_data[update.effective_user.id] = message.id
+
+    return message
+
+
+async def check_and_resend_old_message(update: Update, context: ContextTypes) -> Message:
+    if update.effective_message.id != context.bot_data.get(update.effective_user.id, -1):
+        message = await resend_old_message(update, context)
+        effective_message = message
+    else:
+        effective_message = update.effective_message
+    context.user_data["effective_message_id"] = effective_message.id
+    context.user_data["effective_message"] = effective_message
+    return effective_message
