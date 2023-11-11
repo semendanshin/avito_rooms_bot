@@ -1,9 +1,12 @@
 from enum import Enum
-from database.types import DataToGather, UserResponse
-from database.models import User
+from bot.service import advertisement as advertisement_service
+from database.types import DataToGather, UserResponse, RoomInfoCreate
+from database.models import User, Advertisement
 from .static_text import (FIRST_ROOM_TEMPLATE, PARSED_ROOM_TEMPLATE, CONTACT_INFO_TEMPLATE, ADDITIONAL_INFO,
                           AVITO_URL_TEMPLATE, DATA_FROM_ADVERTISEMENT_TEMPLATE, FIO_TEMPLATE,
                           DISPATCHER_USERNAME_TEMPLATE)
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class AddRoomDialogStates(Enum):
@@ -146,3 +149,51 @@ def fill_first_room_template(data: DataToGather) -> str:
         )
 
     return text
+
+
+async def get_data_by_advertisement_id(session: AsyncSession, advertisement_id: int) -> DataToGather:
+    advertisement = await advertisement_service.get_advertisement(session, advertisement_id)
+    await session.refresh(advertisement, ['room'])
+    await session.refresh(advertisement.room, ['rooms_info'])
+    await session.refresh(advertisement, ['added_by'])
+    return await get_data_by_advertisement(advertisement)
+
+
+async def get_data_by_advertisement(advertisement: Advertisement) -> DataToGather:
+    rooms_info = []
+    for room_info in advertisement.room.rooms_info:
+       rooms_info.append(
+           RoomInfoCreate(
+                number=room_info.number,
+                status=room_info.status,
+                area=room_info.area,
+                description=room_info.description,
+           )
+       )
+    data = DataToGather(
+        url=advertisement.url,
+        price=advertisement.price,
+        contact_phone=advertisement.contact_phone,
+        contact_status=advertisement.contact_status,
+        contact_name=advertisement.contact_name,
+        description=advertisement.description,
+        room_area=advertisement.room.room_area,
+        number_of_rooms_in_flat=advertisement.room.number_of_rooms_in_flat,
+        flour=advertisement.room.flour,
+        flours_in_building=advertisement.room.flours_in_building,
+        address=advertisement.room.address,
+        flat_number=advertisement.room.flat_number,
+        cadastral_number=advertisement.room.cadastral_number,
+        flat_height=advertisement.room.flat_height,
+        flat_area=advertisement.room.flat_area,
+        house_is_historical=advertisement.room.house_is_historical,
+        elevator_nearby=advertisement.room.elevator_nearby,
+        under_room_is_living=advertisement.room.under_room_is_living,
+        entrance_type=advertisement.room.entrance_type,
+        view_type=advertisement.room.view_type,
+        toilet_type=advertisement.room.toilet_type,
+        rooms_info=rooms_info,
+        added_at=advertisement.added_at,
+        added_by=advertisement.added_by,
+    )
+    return data

@@ -59,3 +59,13 @@ async def attach_agent(session: AsyncSession, advertisement_id: int, user_id: in
     advertisement.pinned_agent_id = user_id
     await session.commit()
     return advertisement
+
+
+async def update_advertisement(session: AsyncSession, advertisement_id: int, new_data: AdvertisementCreate):
+    advertisement = await get_advertisement(session, advertisement_id)
+    if not advertisement:
+        raise ValueError('Advertisement not found')
+    for field, value in new_data.model_dump().items():
+        setattr(advertisement, field, value)
+    await session.commit()
+    return advertisement

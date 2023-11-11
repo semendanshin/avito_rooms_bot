@@ -3,7 +3,7 @@ from enum import Enum as pyEnum
 
 class UserRole(pyEnum):
     USER = 'Гость'
-    ADMIN = 'Управляющий'
+    ADMIN = 'Руководитель'
     DISPATCHER = 'Диспетчер'
     AGENT = 'Агент'
 

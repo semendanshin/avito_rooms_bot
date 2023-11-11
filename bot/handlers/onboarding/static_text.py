@@ -8,7 +8,7 @@ START_TEXT_2 = """
 (тел)
 """
 STATISTICS_KEYBOARD_TEXT = 'Статистика📈'
-ADD_ROOM_KEYBOARD_TEXT = 'Добавить комнату➕'
+ADD_ROOM_KEYBOARD_TEXT = 'Добавить➕'
 CANCEL_KEYBOARD_TEXT = 'Отмена❌'
 
 SET_ROLE_KEYBOARD_TEXT = 'Дать роль👮‍'

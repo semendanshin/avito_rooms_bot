@@ -141,9 +141,6 @@ class RoomCreate(BaseModel):
     view_type: Optional[ViewType]
     toilet_type: Optional[ToiletType]
 
-    class Config:
-        orm_mode = True
-
 
 class AdvertisementCreate(BaseModel):
     url: str
@@ -157,9 +154,6 @@ class AdvertisementCreate(BaseModel):
     room_id: int
 
     added_by_id: int
-
-    class Config:
-        orm_mode = True
 
 
 class DataToGather(BaseModel):
@@ -191,7 +185,7 @@ class DataToGather(BaseModel):
     cadastral_number: Optional[str] = None
     house_is_historical: Optional[bool] = None
     elevator_nearby: Optional[bool] = None
-    room_under_is_living: Optional[bool] = None
+    under_room_is_living: Optional[bool] = None
     entrance_type: Optional[EntranceType] = None
     view_type: Optional[ViewType] = None
     toilet_type: Optional[ToiletType] = None

@@ -29,6 +29,7 @@ from .manage_data import (
     fill_data_from_advertisement_template,
     fill_first_room_template,
     fill_parsed_room_template,
+    get_data_by_advertisement_id,
 )
 from .keyboards import (
     get_ad_editing_keyboard,
@@ -57,7 +58,7 @@ def what_is_filled(data: DataToGather) -> (bool, bool, bool):
             data.address,
             data.rooms_info,
             data.flat_area,
-            data.room_under_is_living is not None,
+            data.under_room_is_living is not None,
             data.flat_height,
             data.house_is_historical is not None,
             data.elevator_nearby is not None,
@@ -79,7 +80,7 @@ def get_appropriate_text(data: DataToGather) -> str:
                 data.address,
                 data.rooms_info,
                 data.flat_area,
-                data.room_under_is_living is not None,
+                data.under_room_is_living is not None,
                 data.flat_height,
                 data.house_is_historical is not None,
                 data.elevator_nearby is not None,
@@ -209,7 +210,7 @@ async def add_room_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = await update.message.reply_text(
         text=get_appropriate_text(data),
         parse_mode='HTML',
-        reply_markup=get_ad_editing_keyboard(advertisement_id=0),
+        reply_markup=get_ad_editing_keyboard(advertisement_id=-1),
         disable_web_page_preview=True,
     )
 
@@ -226,7 +227,7 @@ async def start_change_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     plan_is_filled, phone_is_filled, info_is_filled = what_is_filled(context.user_data[update.effective_message.id])
     await update.effective_message.edit_reply_markup(
         reply_markup=get_ad_editing_keyboard(
-            advertisement_id=0,
+            advertisement_id=-1,
             plan_is_active=True,
             phone_is_filled=phone_is_filled,
             info_is_filled=info_is_filled,
@@ -251,7 +252,7 @@ async def change_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message_id=context.user_data['effective_message_id'],
     )
 
-    keyboard = get_appropriate_keyboard(advertisement_id=0, data=data)
+    keyboard = get_appropriate_keyboard(advertisement_id=-1, data=data)
 
     message = await context.bot.send_photo(
         chat_id=update.effective_chat.id,
@@ -267,23 +268,25 @@ async def change_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def start_change_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
-    message = await update.effective_message.reply_text(
-        'Введите телефон продавца и его имя и статус\nПример: <i>8999999999 А-Петр</i>',
-        parse_mode='HTML',
-    )
-    plan_is_filled, phone_is_filled, info_is_filled = what_is_filled(context.user_data[update.effective_message.id])
-    await update.effective_message.edit_reply_markup(
-        reply_markup=get_ad_editing_keyboard(
-            advertisement_id=0,
-            plan_is_filled=plan_is_filled,
-            phone_is_active=True,
-            info_is_filled=info_is_filled,
-        ),
-    )
-    context.user_data["messages_to_delete"] = [message]
-    context.user_data.update({'effective_message_id': update.effective_message.id})
-    context.user_data.update({'effective_message': update.effective_message})
-    return AddRoomDialogStates.CONTACT_PHONE
+    advertisement_id = int(update.callback_query.data.split('_')[-1])
+    if advertisement_id == -1:
+        message = await update.effective_message.reply_text(
+            'Введите телефон продавца и его имя и статус\nПример: <i>8999999999 А-Петр</i>',
+            parse_mode='HTML',
+        )
+        plan_is_filled, phone_is_filled, info_is_filled = what_is_filled(context.user_data[update.effective_message.id])
+        await update.effective_message.edit_reply_markup(
+            reply_markup=get_ad_editing_keyboard(
+                advertisement_id=-1,
+                plan_is_filled=plan_is_filled,
+                phone_is_active=True,
+                info_is_filled=info_is_filled,
+            ),
+        )
+        context.user_data["messages_to_delete"] = [message]
+        context.user_data.update({'effective_message_id': update.effective_message.id})
+        context.user_data.update({'effective_message': update.effective_message})
+        return AddRoomDialogStates.CONTACT_PHONE
 
 
 async def change_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -321,7 +324,7 @@ async def change_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data.contact_status = status
     context.user_data[effective_message_id] = data
 
-    keyboard = get_appropriate_keyboard(advertisement_id=0, data=data)
+    keyboard = get_appropriate_keyboard(advertisement_id=-1, data=data)
 
     await edit_caption_or_text(
         context.user_data['effective_message'],
@@ -337,22 +340,24 @@ async def change_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def start_change_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
-    plan_is_filled, phone_is_filled, info_is_filled = what_is_filled(context.user_data[update.effective_message.id])
-    await update.effective_message.edit_reply_markup(
-        reply_markup=get_ad_editing_keyboard(
-            advertisement_id=0,
-            plan_is_filled=plan_is_filled,
-            phone_is_filled=phone_is_filled,
-            info_is_active=True,
-        ),
-    )
-    message = await update.effective_message.reply_text(
-        'Номер квартиры (пропустить -> /0)',
-    )
-    context.user_data["messages_to_delete"] = [message]
-    context.user_data["effective_message_id"] = update.effective_message.id
-    context.user_data["effective_message"] = update.effective_message
-    return AddRoomDialogStates.FLAT_NUMBER
+    advertisement_id = int(update.callback_query.data.split('_')[-1])
+    if advertisement_id == -1:
+        plan_is_filled, phone_is_filled, info_is_filled = what_is_filled(context.user_data[update.effective_message.id])
+        await update.effective_message.edit_reply_markup(
+            reply_markup=get_ad_editing_keyboard(
+                advertisement_id=-1,
+                plan_is_filled=plan_is_filled,
+                phone_is_filled=phone_is_filled,
+                info_is_active=True,
+            ),
+        )
+        message = await update.effective_message.reply_text(
+            'Номер квартиры (пропустить -> /0)',
+        )
+        context.user_data["messages_to_delete"] = [message]
+        context.user_data["effective_message_id"] = update.effective_message.id
+        context.user_data["effective_message"] = update.effective_message
+        return AddRoomDialogStates.FLAT_NUMBER
 
 
 async def change_flat_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -452,7 +457,7 @@ async def change_cadastral_number(update: Update, context: ContextTypes.DEFAULT_
             )
             context.user_data["messages_to_delete"] += [message, update.message]
 
-            return AddRoomDialogStates.FLAT_NUMBER
+            return AddRoomDialogStates.KADASTR_NUMBER
 
         data.cadastral_number = update.message.text
         context.user_data[effective_message_id] = data
@@ -531,7 +536,7 @@ async def change_flat_height(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     await update.effective_message.reply_text(
         text='Дом является памятником?',
-        reply_markup=get_house_is_historical_keyboard(0),
+        reply_markup=get_house_is_historical_keyboard(-1),
     )
 
     await update_message_and_delete_messages(update, context, data)
@@ -596,11 +601,11 @@ async def change_elevator_nearby(update: Update, context: ContextTypes.DEFAULT_T
 
         return AddRoomDialogStates.ROOM_UNDER
     else:
-        data.room_under_is_living = True
+        data.under_room_is_living = True
         context.user_data[effective_message_id] = data
         await update.effective_message.reply_text(
             text='Тип подъезда',
-            reply_markup=get_entrance_type_keyboard(advertisement_id=0),
+            reply_markup=get_entrance_type_keyboard(advertisement_id=-1),
         )
 
         return AddRoomDialogStates.ENTRANCE_TYPE
@@ -617,12 +622,12 @@ async def change_room_under(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if call_back_data.split('_')[-1] != 'skip':
         room_under_is_living = bool(int(call_back_data.split('_')[-1]))
 
-        data.room_under_is_living = room_under_is_living
+        data.under_room_is_living = room_under_is_living
         context.user_data[effective_message_id] = data
 
     await update.effective_message.reply_text(
         text='Вход в парадную откуда?',
-        reply_markup=get_entrance_type_keyboard(advertisement_id=0),
+        reply_markup=get_entrance_type_keyboard(advertisement_id=-1),
     )
 
     await update.effective_message.delete()
@@ -651,7 +656,7 @@ async def change_entrance_type(update: Update, context: ContextTypes.DEFAULT_TYP
 
     await update.effective_message.reply_text(
         text='Окна комнаты выходят куда?',
-        reply_markup=get_view_type_keyboard(advertisement_id=0),
+        reply_markup=get_view_type_keyboard(advertisement_id=-1),
     )
 
     await update.effective_message.delete()
@@ -680,7 +685,7 @@ async def change_view_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.effective_message.reply_text(
         text='Санузел в квартире какой?',
-        reply_markup=get_toilet_type_keyboard(advertisement_id=0),
+        reply_markup=get_toilet_type_keyboard(advertisement_id=-1),
     )
 
     await update.effective_message.delete()
@@ -811,7 +816,7 @@ async def send(update: Update, context: ContextTypes.DEFAULT_TYPE):
             entrance_type=data.entrance_type,
             view_type=data.view_type,
             toilet_type=data.toilet_type,
-            under_room_is_living=data.room_under_is_living,
+            under_room_is_living=data.under_room_is_living,
         )
 
     except (ValidationError, AttributeError) as e:
@@ -939,7 +944,7 @@ async def show_data_from_ad(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.effective_message.reply_text(
         text=fill_data_from_advertisement_template(data),
-        reply_markup=get_delete_keyboard(advertisement_id=0),
+        reply_markup=get_delete_keyboard(advertisement_id=-1),
     )
 
 

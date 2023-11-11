@@ -261,7 +261,7 @@ async def get_users_with_role(update: Update, context: ContextTypes.DEFAULT_TYPE
     agents = await user_service.get_agents(session)
 
     await update.message.reply_text(
-        'Управляющие:\n' + '\n'.join([f'{fill_user_fio_template(el)} - @{el.username}' for el in admins]) + '\n\n' +
-        'Диспетчеры:\n' + '\n'.join([f'{fill_user_fio_template(el)} - @{el.username}' for el in dispatchers]) + '\n\n' +
-        'Агенты:\n' + '\n'.join([f'{fill_user_fio_template(el)} - @{el.username}' for el in agents]),
+        'Руководители:\n' + '\n'.join([f'{fill_user_fio_template(el)} - @{el.username} - {el.phone_number}' for el in admins]) + '\n\n' +
+        'Диспетчеры:\n' + '\n'.join([f'{fill_user_fio_template(el)} - @{el.username} - {el.phone_number}' for el in dispatchers]) + '\n\n' +
+        'Агенты:\n' + '\n'.join([f'{fill_user_fio_template(el)} - @{el.username} - {el.phone_number}' for el in agents]),
     )

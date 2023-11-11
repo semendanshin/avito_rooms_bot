@@ -21,17 +21,17 @@ def get_plan_inspection_keyboard(
             InlineKeyboardButton(
                 (active_emoji if plan_is_active else filled_emoji if plan_is_filled else '') +
                 'План',
-                callback_data=f'change_plan_{advertisement_id}',
+                callback_data=f'edit_plan_{advertisement_id}',
             ),
             InlineKeyboardButton(
                 (active_emoji if phone_is_active else filled_emoji if phone_is_filled else '') +
                 'Телефон',
-                callback_data=f'change_phone_{advertisement_id}',
+                callback_data=f'edit_phone_{advertisement_id}',
             ),
             InlineKeyboardButton(
                 (active_emoji if info_is_active else filled_emoji if info_is_filled else '') +
                 'Инфо',
-                callback_data=f'change_info_{advertisement_id}',
+                callback_data=f'edit_info_{advertisement_id}',
             ),
         ],
         [

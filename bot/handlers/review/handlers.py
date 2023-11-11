@@ -42,6 +42,8 @@ async def send_advertisement(session, bot: Bot, advertisement_id: int, user_id: 
 
 
 async def view_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["messages_to_delete"] = [update.effective_message]
+
     try:
         session = context.session
     except AttributeError:
@@ -64,6 +66,17 @@ async def view_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
             dispatchers = await user_service.get_dispatchers(session)
 
+            if not dispatchers:
+                message = await update.effective_message.reply_text(
+                    'Диспетчеров нет. Отменяю.'
+                )
+                context.user_data['messages_to_delete'] += [message]
+
+                await delete_messages(context)
+                await delete_message_or_skip(update.effective_message)
+
+                return ConversationHandler.END
+
             if len(dispatchers) > 1:
                 message = await update.effective_message.reply_text(
                     'Выберите диспетчера',
@@ -82,6 +95,17 @@ async def view_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
 
             agents = await user_service.get_agents(session)
+
+            if not agents:
+                message = await update.effective_message.reply_text(
+                    'Агентов нет. Отменяю.'
+                )
+                context.user_data['messages_to_delete'] += [message]
+
+                await delete_messages(context)
+                await delete_message_or_skip(update.effective_message)
+
+                return ConversationHandler.END
 
             if len(agents) > 1:
                 message = await update.effective_message.reply_text(
@@ -122,6 +146,8 @@ async def view_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await delete_messages(context)
             await update.effective_message.delete()
 
+            return ConversationHandler.END
+
 
 async def attach_dispatcher(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
@@ -161,6 +187,17 @@ async def attach_dispatcher(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await delete_message_or_skip(update.effective_message)
 
     agents = await user_service.get_agents(session)
+
+    if not agents:
+        message = await update.effective_message.reply_text(
+            'Агентов нет. Отменяю.'
+        )
+        context.user_data['messages_to_delete'] += [message]
+
+        await delete_messages(context)
+        await delete_message_or_skip(update.effective_message)
+
+        return ConversationHandler.END
 
     if len(agents) > 1:
         message = await update.effective_message.reply_text(

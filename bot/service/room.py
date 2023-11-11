@@ -18,3 +18,12 @@ async def create_room(session: AsyncSession, room: RoomCreate) -> Room:
     room = Room(**room.model_dump())
     session.add(room)
     return room
+
+
+async def update_room(session: AsyncSession, room_id: int, new_data: RoomCreate) -> Room:
+    room = await get_room(session, room_id)
+    if not room:
+        raise ValueError('Room not found')
+    room.update_from_dict(new_data.model_dump())
+    return room
+

@@ -158,7 +158,7 @@ async def process_calculation(update: Update, context: ContextTypes.DEFAULT_TYPE
             refusal='',
             part_price=part_price
         )
-        if 'ПП' in el.description:
+        if 'ПП' in el.description or 'ВСТ' in el.description:
             rooms_info_text += room_for_sale_addition.format(
                 price_per_meter_for_sell=int(price_per_meter_for_sell),
                 living_period=int(living_period),

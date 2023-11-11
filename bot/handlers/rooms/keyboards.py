@@ -52,7 +52,7 @@ def get_send_or_edit_keyboard(advertisement_id: int | str) -> InlineKeyboardMark
                 callback_data=f'change_plan_{advertisement_id}',
             ),
             InlineKeyboardButton(
-                filled_emoji+ 'Телефон',
+                filled_emoji + 'Телефон',
                 callback_data=f'change_phone_{advertisement_id}',
             ),
             InlineKeyboardButton(
