@@ -103,7 +103,7 @@ def fill_first_room_template(data: DataToGather) -> str:
     elevator = 'бл' if data.elevator_nearby is not None and not data.elevator_nearby else ''
 
     if data.flour and data.flour == 2 and data.under_room_is_living is not None:
-        room_under = '(кв)' if data.room_under_is_living else '(н)'
+        room_under = '(кв)' if data.under_room_is_living else '(н)'
     else:
         room_under = ''
 
