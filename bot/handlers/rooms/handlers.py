@@ -604,7 +604,7 @@ async def change_elevator_nearby(update: Update, context: ContextTypes.DEFAULT_T
         data.under_room_is_living = True
         context.user_data[effective_message_id] = data
         await update.effective_message.reply_text(
-            text='Тип подъезда',
+            text='Вход в парадную откуда?',
             reply_markup=get_entrance_type_keyboard(advertisement_id=-1),
         )
 

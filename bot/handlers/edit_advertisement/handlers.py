@@ -20,7 +20,7 @@ from bot.handlers.rooms.keyboards import (
     get_toilet_type_keyboard,
     get_yes_or_no_keyboard,
 )
-from database.models import Advertisement, RoomInfo
+from database.models import Advertisement
 
 from database.types import DataToGather, RoomInfoCreate
 from database.enums import EntranceType, ViewType, ToiletType, RoomType
@@ -465,7 +465,7 @@ async def edit_elevator_nearby(update: Update, context: ContextTypes.DEFAULT_TYP
     advertisement.room.under_room_is_living = True
     context.user_data['effective_advertisement'] = advertisement
     await update.effective_message.reply_text(
-        text='Тип подъезда',
+        text='Вход в парадную откуда?',
         reply_markup=get_entrance_type_keyboard(advertisement_id=-1),
     )
 
@@ -549,7 +549,7 @@ async def edit_view_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     await update.effective_message.reply_text(
-        text='Санузел',
+        text='Санузел в квартире какой?',
         reply_markup=get_toilet_type_keyboard(advertisement_id=-1),
     )
 
@@ -622,6 +622,8 @@ async def edit_rooms_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
             rooms.append(room)
+
+        await context.session.commit()
 
         await room_info_service.update_room_info(context.session, advertisement.room.id, rooms)
 
