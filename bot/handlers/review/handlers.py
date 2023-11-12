@@ -1,16 +1,15 @@
 from telegram import Update, Bot
 from telegram.ext import ContextTypes, ConversationHandler
 
-from bot.service import advertisement as advertisement_service
-from bot.service import user as user_service
+from bot.crud import advertisement as advertisement_service
+from bot.crud import user as user_service
 
 from bot.utils.utils import delete_messages, delete_message_or_skip
 from bot.utils.resend_old_message import check_and_resend_old_message
 
 from bot.handlers.rooms.handlers import get_appropriate_text
-from bot.handlers.rooms.manage_data import fill_user_fio_template, get_data_by_advertisement_id
+from bot.handlers.rooms.manage_data import fill_user_fio_template, refresh_advertisement
 
-from database.types import DataToGather, AdvertisementResponse
 from database.enums import AdvertisementStatus, UserRole
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,13 +19,13 @@ from .manage_data import ReviewConversationStates
 
 
 async def send_advertisement(session, bot: Bot, advertisement_id: int, user_id: int):
-    data = await get_data_by_advertisement_id(session, advertisement_id)
+    advertisement = await advertisement_service.get_advertisement(session, advertisement_id)
 
-    text = get_appropriate_text(data)
+    text = get_appropriate_text(advertisement)
 
     message = await bot.send_photo(
         chat_id=user_id,
-        photo=data.plan_telegram_file_id,
+        photo=advertisement.flat.plan_telegram_file_id,
         reply_markup=get_plan_inspection_keyboard(advertisement_id=advertisement_id),
         caption=text,
         parse_mode='HTML',
@@ -129,7 +128,7 @@ async def view_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 f'Агент: {agent_fio}',
                 reply_markup=get_confirmation_keyboard(advertisement_id),
             )
-            context.user_data['messages_to_delete'] += [message]
+            context.user_data['messages_to_delete'] = [message]
 
             return ReviewConversationStates.CONFIRMATION
 
@@ -314,6 +313,7 @@ async def confirm_attachment(update: Update, context: ContextTypes.DEFAULT_TYPE)
             return ConversationHandler.END
 
         advertisement = await advertisement_service.get_advertisement(session, advertisement_id)
+        advertisement = await refresh_advertisement(session, advertisement)
 
         advertisement.pinned_dispatcher_id = dispatcher.id
         advertisement.pinned_agent_id = agent.id

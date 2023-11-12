@@ -4,8 +4,8 @@ from telegram.ext import ContextTypes
 from .abstract_middleware import AbstractMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.service.user import get_user, create_user
-from database.types import UserCreate
+from bot.crud import user as user_service
+from bot.schemas.types import UserCreate
 
 
 class UserMiddleware(AbstractMiddleware):
@@ -18,7 +18,7 @@ class UserMiddleware(AbstractMiddleware):
         except AttributeError:
             raise Exception('SessionMiddleware: session is not found in context')
         else:
-            user = await get_user(session, update.effective_user.id)
+            user = await user_service.get_user(session, update.effective_user.id)
             if not user:
                 user_create = UserCreate(
                     id=update.effective_user.id,
@@ -26,7 +26,7 @@ class UserMiddleware(AbstractMiddleware):
                     first_name=update.effective_user.first_name,
                     last_name=update.effective_user.last_name,
                 )
-                user = await create_user(session, user_create)
+                user = await user_service.create_user(session, user_create)
             context.__setattr__('database_user', user)
 
     async def after_update(self, update: Update, context: ContextTypes):

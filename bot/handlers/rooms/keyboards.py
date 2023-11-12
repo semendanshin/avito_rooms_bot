@@ -1,5 +1,5 @@
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
-from database.enums import (EntranceTypeHumanReadable, ToiletTypeHumanReadable, ViewTypeHumanReadable,
+from database.enums import (HouseEntranceTypeHumanReadable, ToiletTypeHumanReadable, ViewTypeHumanReadable,
                             AdvertisementStatus)
 from bot.utils.utils import structure_buttons
 
@@ -76,7 +76,7 @@ def get_send_or_edit_keyboard(advertisement_id: int | str) -> InlineKeyboardMark
 def get_entrance_type_keyboard(advertisement_id: int) -> InlineKeyboardMarkup:
     buttons = [
         InlineKeyboardButton(entrance_type.value, callback_data=f'entrance_type_{advertisement_id}_{entrance_type.name}')
-        for entrance_type in EntranceTypeHumanReadable
+        for entrance_type in HouseEntranceTypeHumanReadable
     ]
     keyboard = structure_buttons(buttons, 2)
     keyboard += [[InlineKeyboardButton('Пропустить', callback_data=f'entrance_type_{advertisement_id}_skip')]]

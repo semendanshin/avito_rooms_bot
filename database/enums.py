@@ -21,11 +21,44 @@ class AdvertisementStatus(pyEnum):
     BOUGHT = 'КУП'
 
 
-class RoomType(pyEnum):
+class RoomStatusEnum(pyEnum):
     LIVING = 'Ж'
     NON_LIVING = 'Н'
     FOR_RENT = 'С'
     RELATIVE = 'Р'
+    GOVERNMENT = 'СПб'
+
+
+class RoomTypeEnum(pyEnum):
+    LIVING = 'ЖИЛ'
+    MOP = 'МОП'
+    KITCHEN = 'КУХ'
+    BATHROOM = 'СУ'
+    CLOSET = 'ШК'
+
+
+class RoomOwnersEnum(pyEnum):
+    MALE = 'М'
+    FEMALE = 'Ж'
+    OLD = 'Пенс'
+
+
+class RoomRefusalStatusEnum(pyEnum):
+    NOTARY = 'НОТ'
+    WRITTEN = 'ПИС'
+    NO = 'НЕТ'
+    ROOM_ON_DIRECT_SALE = 'ПП'
+    ROOM_ON_CROSS_SALE = 'ВСТ'
+    OTHER_ROOM_OF_SELLER = 'СОБ'
+
+
+class RoomOccupantsEnum(pyEnum):
+    MALE = 'М'
+    FEMALES = 'Ж'
+    OLD = 'Пенс'
+    KIDS = 'Дети'
+    RELATIVES = 'Род'
+    ANIMALS = 'Жив'
 
 
 class ToiletType(pyEnum):
@@ -42,14 +75,20 @@ class ToiletTypeHumanReadable(pyEnum):
     SHOWERONKITCHEN = 'Душ на кухне'
 
 
-class EntranceType(pyEnum):
+class FlatEntranceType(pyEnum):
+    KITCHEN = 'Кух'
+    ONE = 'Один'
+    TWO = 'Два'
+
+
+class HouseEntranceType(pyEnum):
     STREET = 'Вх-Ул'
     YARD = 'Вх-Дв'
     ARCH = 'Вх-Ар'
     SEPARATE = 'Вх-Отд'
 
 
-class EntranceTypeHumanReadable(pyEnum):
+class HouseEntranceTypeHumanReadable(pyEnum):
     STREET = 'Вход с улицы'
     YARD = 'Вход с двора'
     ARCH = 'Вход через арку'

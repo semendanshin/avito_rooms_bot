@@ -1,26 +1,23 @@
-import pprint
-
 from telegram import Update, Message, ReplyKeyboardMarkup, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.ext import ConversationHandler
+
 from avito_parser import scrape_avito_room_ad, TooManyRequests, AvitoScrapingException
-from database.types import RoomInfoCreate, DataToGather, RoomCreate, AdvertisementCreate
-from database.enums import EntranceType, ViewType, ToiletType, RoomType
+
+from bot.schemas.types import AdvertisementBase, RoomBase, HouseBase
+from database.enums import HouseEntranceType, ViewType, ToiletType, RoomTypeEnum, RoomStatusEnum, RoomOwnersEnum, \
+    RoomRefusalStatusEnum, RoomOccupantsEnum, FlatEntranceType
+
+from bot.crud import advertisement as advertisement_service, user as user_service
+from ...crud import house as house_service, flat as flat_service
+
 from bot.utils.utils import (
-    cadnum_to_id,
     validate_message_text,
     delete_messages,
     delete_message_or_skip,
 )
 from bot.utils.resend_old_message import check_and_resend_old_message
 from bot.utils.dadata_repository import dadata
-from bot.service import user as user_service
-from bot.service import room as room_service
-from bot.service import room_info as room_info_service
-from bot.service import advertisement as advertisement_service
-
-from pydantic import ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from typing import Optional
 from logging import getLogger
@@ -31,7 +28,8 @@ from .manage_data import (
     fill_data_from_advertisement_template,
     fill_first_room_template,
     fill_parsed_room_template,
-    get_data_by_advertisement_id,
+    get_advertisement_base,
+    create_advertisement,
 )
 from .keyboards import (
     get_ad_editing_keyboard,
@@ -48,56 +46,50 @@ from .keyboards import (
 logger = getLogger(__name__)
 
 
-def what_is_filled(data: DataToGather) -> (bool, bool, bool):
-    plan_is_filled = bool(data.plan_telegram_file_id)
-    phone_is_filled = bool(data.contact_phone)
+def what_is_filled(advertisement: AdvertisementBase) -> (bool, bool, bool):
+    plan_is_filled = bool(advertisement.flat.plan_telegram_file_id)
+    phone_is_filled = bool(advertisement.contact_phone)
     info_is_filled = all(
         [
-            data.flat_number,
-            data.cadastral_number,
-            data.room_area,
-            data.flours_in_building,
-            data.address,
-            data.rooms_info,
-            data.flat_area,
-            data.under_room_is_living is not None,
-            data.flat_height,
-            data.house_is_historical is not None,
-            data.elevator_nearby is not None,
-            data.entrance_type,
-            data.view_type,
-            data.toilet_type,
+            advertisement.flat.flat_number,
+            advertisement.flat.cadastral_number,
+            advertisement.flat.rooms,
+            advertisement.flat.area,
+            advertisement.flat.under_room_is_living is not None,
+            advertisement.flat.flat_height,
+            advertisement.flat.house.is_historical is not None,
+            advertisement.flat.elevator_nearby is not None,
+            advertisement.flat.house_entrance_type,
+            advertisement.flat.view_type,
+            advertisement.flat.toilet_type,
         ]
     )
     return plan_is_filled, phone_is_filled, info_is_filled
 
 
-def get_appropriate_text(data: DataToGather) -> str:
+def get_appropriate_text(advertisement: AdvertisementBase) -> str:
     if any(
             [
-                data.flat_number,
-                data.cadastral_number,
-                data.room_area,
-                data.flours_in_building,
-                data.address,
-                data.rooms_info,
-                data.flat_area,
-                data.under_room_is_living is not None,
-                data.flat_height,
-                data.house_is_historical is not None,
-                data.elevator_nearby is not None,
-                data.entrance_type,
-                data.view_type,
-                data.toilet_type,
+                advertisement.flat.flat_number,
+                advertisement.flat.cadastral_number,
+                advertisement.flat.rooms,
+                advertisement.flat.area,
+                advertisement.flat.under_room_is_living is not None,
+                advertisement.flat.flat_height,
+                advertisement.flat.house.is_historical is not None,
+                advertisement.flat.elevator_nearby is not None,
+                advertisement.flat.house_entrance_type,
+                advertisement.flat.view_type,
+                advertisement.flat.toilet_type,
             ]
     ):
-        return fill_first_room_template(data)
+        return fill_first_room_template(advertisement)
     else:
-        return fill_parsed_room_template(data)
+        return fill_parsed_room_template(advertisement)
 
 
-def get_appropriate_keyboard(advertisement_id: int, data: DataToGather) -> InlineKeyboardMarkup:
-    plan_is_filled, phone_is_filled, info_is_filled = what_is_filled(data)
+def get_appropriate_keyboard(advertisement_id: int, advertisement: AdvertisementBase) -> InlineKeyboardMarkup:
+    plan_is_filled, phone_is_filled, info_is_filled = what_is_filled(advertisement)
     if all([plan_is_filled, phone_is_filled, info_is_filled]):
         return get_send_or_edit_keyboard(advertisement_id)
     else:
@@ -129,10 +121,10 @@ async def edit_caption_or_text(message: Message, new_text: str,
         logger.error(e)
 
 
-async def update_message_and_delete_messages(update: Update, context: ContextTypes.DEFAULT_TYPE, data: DataToGather):
+async def update_message_and_delete_messages(update: Update, context: ContextTypes.DEFAULT_TYPE, advertisement: AdvertisementBase):
     await edit_caption_or_text(
         context.user_data['effective_message'],
-        get_appropriate_text(data),
+        get_appropriate_text(advertisement),
     )
     await update.message.delete()
     await delete_messages(context)
@@ -193,29 +185,52 @@ async def add_room_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['messages_to_delete'].extend([message, update.message])
         raise e
 
-    data = DataToGather(
-        url=url,
-        price=result.price,
-        description=result.description,
-        added_by_id=update.effective_user.id,
-        room_area=result.room_area,
-        number_of_rooms_in_flat=result.number_of_rooms_in_flat,
-        flour=result.flour,
-        flours_in_building=result.flours_in_building,
-        address=result.address,
-    )
+    dadata_data = dadata.get_clean_data(result.address + 'литера А, кв')
+    if not dadata_data or not dadata_data.house_cadnum:
+        dadata_data = dadata.get_clean_data(result.address)
+        if not dadata_data or not dadata_data.house_cadnum:
+            dadata_data = None
+
+    if not dadata_data or not dadata_data.street or not dadata_data.house or not dadata_data.house_cadnum:
+        message = await update.message.reply_text(
+            'Не удалось получить кадномер дома. Напишите /cancel, чтобы отменить добавление',
+        )
+        context.user_data['messages_to_delete'].extend([message, update.message])
+        return
+
+    advertisement = get_advertisement_base()
+
+    house = await house_service.get_house(session, dadata_data.house_cadnum)
+    if not house:
+        advertisement.flat.house = HouseBase()
+        advertisement.flat.house.cadastral_number = dadata_data.house_cadnum
+        advertisement.flat.house.street_name = dadata_data.street + ' ' + dadata_data.street_type
+        advertisement.flat.house.number = dadata_data.house
+        advertisement.flat.house.number_of_flours = result.flours_in_building
+        advertisement.flat.house.is_historical = None
+    else:
+        advertisement.flat.house = house
+
+    advertisement.url = url
+    advertisement.room_price = result.price
+    advertisement.room_area = result.room_area
+    advertisement.description = result.description
+    advertisement.flat.number_of_rooms = result.number_of_rooms_in_flat
+    advertisement.flat.flour = result.flour
+
+    advertisement.added_by = context.user
 
     await delete_messages(context)
     await delete_message_or_skip(update.message)
 
     message = await update.message.reply_text(
-        text=get_appropriate_text(data),
+        text=get_appropriate_text(advertisement),
         parse_mode='HTML',
         reply_markup=get_ad_editing_keyboard(advertisement_id=-1),
         disable_web_page_preview=True,
     )
 
-    context.user_data[message.id] = data
+    context.user_data[message.id] = advertisement
     context.bot_data[update.effective_user.id] = message.id
 
     return ConversationHandler.END
@@ -229,7 +244,7 @@ async def start_change_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = await update.effective_message.reply_text(
         'Вставьте картинку с планом',
     )
-    plan_is_filled, phone_is_filled, info_is_filled = what_is_filled(context.user_data[update.effective_message.id])
+    plan_is_filled, phone_is_filled, info_is_filled = what_is_filled(context.user_data[effective_message.id])
     await effective_message.edit_reply_markup(
         reply_markup=get_ad_editing_keyboard(
             advertisement_id=-1,
@@ -246,8 +261,8 @@ async def change_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     photo = update.message.photo[-1]
 
     effective_message_id = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
-    data.plan_telegram_file_id = photo.file_id
+    advertisement = context.user_data[effective_message_id]
+    advertisement.flat.plan_telegram_file_id = photo.file_id
 
     await update.message.delete()
     await context.user_data['message_to_delete'].delete()
@@ -256,17 +271,17 @@ async def change_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message_id=context.user_data['effective_message_id'],
     )
 
-    keyboard = get_appropriate_keyboard(advertisement_id=-1, data=data)
+    keyboard = get_appropriate_keyboard(advertisement_id=-1, advertisement=advertisement)
 
     message = await context.bot.send_photo(
         chat_id=update.effective_chat.id,
         photo=photo,
-        caption=get_appropriate_text(data),
+        caption=get_appropriate_text(advertisement),
         parse_mode='HTML',
         reply_markup=keyboard,
     )
     del context.user_data[effective_message_id]
-    context.user_data[message.id] = data
+    context.user_data[message.id] = advertisement
     context.bot_data[update.effective_user.id] = message.id
     return ConversationHandler.END
 
@@ -282,7 +297,7 @@ async def start_change_phone(update: Update, context: ContextTypes.DEFAULT_TYPE)
             'Введите телефон продавца и его имя и статус\nПример: <i>8999999999 А-Петр</i>',
             parse_mode='HTML',
         )
-        plan_is_filled, phone_is_filled, info_is_filled = what_is_filled(context.user_data[update.effective_message.id])
+        plan_is_filled, phone_is_filled, info_is_filled = what_is_filled(context.user_data[effective_message.id])
         await effective_message.edit_reply_markup(
             reply_markup=get_ad_editing_keyboard(
                 advertisement_id=-1,
@@ -324,17 +339,17 @@ async def change_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
         phone_number = '8' + phone_number
 
     effective_message_id: int = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
-    data.contact_phone = phone_number
-    data.contact_name = contact_name
-    data.contact_status = status
-    context.user_data[effective_message_id] = data
+    advertisement = context.user_data[effective_message_id]
+    advertisement.contact_phone = phone_number
+    advertisement.contact_name = contact_name
+    advertisement.contact_status = status
+    context.user_data[effective_message_id] = advertisement
 
-    keyboard = get_appropriate_keyboard(advertisement_id=-1, data=data)
+    keyboard = get_appropriate_keyboard(advertisement_id=-1, advertisement=advertisement)
 
     await edit_caption_or_text(
         context.user_data['effective_message'],
-        get_appropriate_text(data),
+        get_appropriate_text(advertisement),
         keyboard,
     )
     await update.message.delete()
@@ -368,7 +383,7 @@ async def start_change_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def change_flat_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
     effective_message_id = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
+    advertisement = context.user_data[effective_message_id]
 
     if update.message.text == '/0':
         message = await update.effective_message.reply_text(
@@ -377,23 +392,24 @@ async def change_flat_number(update: Update, context: ContextTypes.DEFAULT_TYPE)
             disable_web_page_preview=True,
         )
 
-        await update_message_and_delete_messages(update, context, data)
+        await update_message_and_delete_messages(update, context, advertisement)
 
-        context.user_data["messages_to_delete"] += [message]
+        context.user_data["messages_to_delete"] += [message, update.message]
 
         return AddRoomDialogStates.KADASTR_NUMBER
 
     if not await validate_message_text(update, context, r'\d+([а-яА-Я]*)'):
         return
 
-    data.flat_number = update.message.text
+    advertisement.flat.flat_number = update.message.text
 
-    await update_message_and_delete_messages(update, context, data)
+    await update_message_and_delete_messages(update, context, advertisement)
 
-    address = dadata.get_clean_data(data.address + 'литера А, кв' + data.flat_number)
-    if address.fias_level < 8:
-        address = dadata.get_clean_data(data.address + ',кв. ' + data.flat_number)
-        if address.fias_level < 8:
+    house_address = 'спб ' + advertisement.flat.house.street_name + ' ' + advertisement.flat.house.number
+    address = dadata.get_clean_data(house_address + 'литера А, кв' + advertisement.flat.flat_number)
+    if not address or not address.flat_cadnum:
+        address = dadata.get_clean_data(house_address + ',кв. ' + advertisement.flat.flat_number)
+        if not address or not address.flat_cadnum:
             address = None
 
     if not address or not address.flat_cadnum:
@@ -411,7 +427,7 @@ async def change_flat_number(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
         context.user_data["messages_to_delete"] += [message]
 
-    if address.flat_cadnum and await room_service.get_room(context.session, cadnum_to_id(address.flat_cadnum)):
+    if address.flat_cadnum and await flat_service.get_flat(context.session, address.flat_cadnum):
         message = await update.effective_message.reply_text(
             text='Квартира с таким кадастровым номером уже существует. '
                  'Проверьте номер или напишите /cancel, чтобы отменить добавление',
@@ -420,17 +436,16 @@ async def change_flat_number(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         return AddRoomDialogStates.FLAT_NUMBER
 
-    data.cadastral_number = address.flat_cadnum
-    data.address = f'{address.street} {address.street_type} {address.house}'
-    context.user_data[effective_message_id] = data
+    advertisement.flat.cadastral_number = address.flat_cadnum
+    context.user_data[effective_message_id] = advertisement
 
     if address.flat_area:
         message = await update.effective_message.reply_text(
             text=f'Площадь квартиры: {address.flat_area} м2',
         )
         context.user_data["messages_to_delete"] += [message]
-        data.flat_area = float(address.flat_area.replace(',', '.'))
-        context.user_data[effective_message_id] = data
+        advertisement.flat.area = float(address.flat_area.replace(',', '.'))
+        context.user_data[effective_message_id] = advertisement
 
         message = await update.effective_message.reply_text(
             text='Высота потолка (пропустить -> /0)',
@@ -450,13 +465,13 @@ async def change_flat_number(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def change_cadastral_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
     effective_message_id = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
+    advertisement = context.user_data[effective_message_id]
 
     if update.message.text != '/0':
         if not await validate_message_text(update, context, r'[\d:]*'):
             return
 
-        if await room_service.get_room(context.session, cadnum_to_id(update.message.text)):
+        if await flat_service.get_flat(context.session, update.message.text):
             message = await update.effective_message.reply_text(
                 text='Квартира с таким кадастровым номером уже существует. '
                      'Проверьте номер или напишите /cancel, чтобы отменить добавление',
@@ -465,8 +480,8 @@ async def change_cadastral_number(update: Update, context: ContextTypes.DEFAULT_
 
             return AddRoomDialogStates.KADASTR_NUMBER
 
-        data.cadastral_number = update.message.text
-        context.user_data[effective_message_id] = data
+        advertisement.flat.cadastral_number = update.message.text
+        context.user_data[effective_message_id] = advertisement
 
         address = dadata.get_clean_data_by_cadastral_number(update.message.text)
 
@@ -478,9 +493,8 @@ async def change_cadastral_number(update: Update, context: ContextTypes.DEFAULT_
                 text=f'Площадь квартиры: {address.flat_area} м2',
             )
             context.user_data["messages_to_delete"] += [message]
-            data.flat_area = float(address.flat_area.replace(',', '.'))
-            data.address = f'{address.street} {address.street_type} {address.house}'
-            context.user_data[effective_message_id] = data
+            advertisement.flat.area = float(address.flat_area.replace(',', '.'))
+            context.user_data[effective_message_id] = advertisement
 
             message = await update.effective_message.reply_text(
                 text='Высота потолка (пропустить -> /0)',
@@ -494,7 +508,7 @@ async def change_cadastral_number(update: Update, context: ContextTypes.DEFAULT_
         text='Площадь квартиры (пропустить -> /0)',
     )
 
-    await update_message_and_delete_messages(update, context, data)
+    await update_message_and_delete_messages(update, context, advertisement)
 
     context.user_data["messages_to_delete"] += [message]
 
@@ -503,7 +517,7 @@ async def change_cadastral_number(update: Update, context: ContextTypes.DEFAULT_
 
 async def change_flat_area(update: Update, context: ContextTypes.DEFAULT_TYPE):
     effective_message_id = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
+    advertisement = context.user_data[effective_message_id]
 
     if update.message.text != '/0':
         pattern = r'\d+([.,]\d+)?'
@@ -513,14 +527,14 @@ async def change_flat_area(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         area = float(update.message.text.replace(',', '.'))
 
-        data.flat_area = area
-        context.user_data[effective_message_id] = data
+        advertisement.flat.area = area
+        context.user_data[effective_message_id] = advertisement
 
     message = await update.effective_message.reply_text(
         text='Высота потолка (пропустить -> /0)',
     )
 
-    await update_message_and_delete_messages(update, context, data)
+    await update_message_and_delete_messages(update, context, advertisement)
 
     context.user_data["messages_to_delete"] += [message]
 
@@ -529,7 +543,7 @@ async def change_flat_area(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def change_flat_height(update: Update, context: ContextTypes.DEFAULT_TYPE):
     effective_message_id = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
+    advertisement = context.user_data[effective_message_id]
 
     if update.message.text != '/0':
         if not await validate_message_text(update, context, r'\d+([.,]\d+)?'):
@@ -537,15 +551,15 @@ async def change_flat_height(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         height = float(update.message.text.replace(',', '.'))
 
-        data.flat_height = height
-        context.user_data[effective_message_id] = data
+        advertisement.flat.flat_height = height
+        context.user_data[effective_message_id] = advertisement
 
     await update.effective_message.reply_text(
         text='Дом является памятником?',
         reply_markup=get_house_is_historical_keyboard(-1),
     )
 
-    await update_message_and_delete_messages(update, context, data)
+    await update_message_and_delete_messages(update, context, advertisement)
 
     return AddRoomDialogStates.HOUSE_IS_HISTORICAL
 
@@ -556,12 +570,12 @@ async def change_house_is_historical(update: Update, context: ContextTypes.DEFAU
     call_back_data = update.callback_query.data
 
     effective_message_id = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
+    advertisement = context.user_data[effective_message_id]
 
     if call_back_data.split('_')[-1] != 'skip':
         house_is_historical = bool(int(call_back_data.split('_')[-1]))
-        data.house_is_historical = house_is_historical
-        context.user_data[effective_message_id] = data
+        advertisement.flat.house.is_historical = house_is_historical
+        context.user_data[effective_message_id] = advertisement
 
     await update.effective_message.reply_text(
         text='Есть лифт рядом в квартирой?',
@@ -572,7 +586,7 @@ async def change_house_is_historical(update: Update, context: ContextTypes.DEFAU
 
     await edit_caption_or_text(
         context.user_data['effective_message'],
-        get_appropriate_text(data),
+        get_appropriate_text(advertisement),
     )
 
     return AddRoomDialogStates.ELEVATOR_NEARBY
@@ -584,22 +598,22 @@ async def change_elevator_nearby(update: Update, context: ContextTypes.DEFAULT_T
     call_back_data = update.callback_query.data
 
     effective_message_id = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
+    advertisement = context.user_data[effective_message_id]
 
     if call_back_data.split('_')[-1] != 'skip':
         elevator_nearby = bool(int(call_back_data.split('_')[-1]))
 
-        data.elevator_nearby = elevator_nearby
-        context.user_data[effective_message_id] = data
+        advertisement.flat.elevator_nearby = elevator_nearby
+        context.user_data[effective_message_id] = advertisement
 
     await update.effective_message.delete()
 
     await edit_caption_or_text(
         context.user_data['effective_message'],
-        get_appropriate_text(data),
+        get_appropriate_text(advertisement),
     )
 
-    if data.flour == 2:
+    if advertisement.flat.flour == 2:
         await update.effective_message.reply_text(
             text='Помещение под этой квартирой жилое?',
             reply_markup=get_yes_or_no_keyboard(callback_pattern='room_under_is_living_'),
@@ -607,8 +621,8 @@ async def change_elevator_nearby(update: Update, context: ContextTypes.DEFAULT_T
 
         return AddRoomDialogStates.ROOM_UNDER
     else:
-        data.under_room_is_living = True
-        context.user_data[effective_message_id] = data
+        advertisement.flat.under_room_is_living = True
+        context.user_data[effective_message_id] = advertisement
         await update.effective_message.reply_text(
             text='Вход в парадную откуда?',
             reply_markup=get_entrance_type_keyboard(advertisement_id=-1),
@@ -623,13 +637,13 @@ async def change_room_under(update: Update, context: ContextTypes.DEFAULT_TYPE):
     call_back_data = update.callback_query.data
 
     effective_message_id = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
+    advertisement = context.user_data[effective_message_id]
 
     if call_back_data.split('_')[-1] != 'skip':
         room_under_is_living = bool(int(call_back_data.split('_')[-1]))
 
-        data.under_room_is_living = room_under_is_living
-        context.user_data[effective_message_id] = data
+        advertisement.flat.under_room_is_living = room_under_is_living
+        context.user_data[effective_message_id] = advertisement
 
     await update.effective_message.reply_text(
         text='Вход в парадную откуда?',
@@ -640,7 +654,7 @@ async def change_room_under(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await edit_caption_or_text(
         context.user_data['effective_message'],
-        get_appropriate_text(data),
+        get_appropriate_text(advertisement),
     )
 
     return AddRoomDialogStates.ENTRANCE_TYPE
@@ -652,13 +666,13 @@ async def change_entrance_type(update: Update, context: ContextTypes.DEFAULT_TYP
     call_back_data = update.callback_query.data
 
     effective_message_id = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
+    advertisement = context.user_data[effective_message_id]
 
     if call_back_data.split('_')[-1] != 'skip':
-        entrance_type = EntranceType[call_back_data.split('_')[-1]]
+        house_entrance_type = HouseEntranceType[call_back_data.split('_')[-1]]
 
-        data.entrance_type = entrance_type
-        context.user_data[effective_message_id] = data
+        advertisement.flat.house_entrance_type = house_entrance_type
+        context.user_data[effective_message_id] = advertisement
 
     await update.effective_message.reply_text(
         text='Окна комнаты выходят куда?',
@@ -669,7 +683,7 @@ async def change_entrance_type(update: Update, context: ContextTypes.DEFAULT_TYP
 
     await edit_caption_or_text(
         context.user_data['effective_message'],
-        get_appropriate_text(data),
+        get_appropriate_text(advertisement),
     )
 
     return AddRoomDialogStates.WINDOWS_TYPE
@@ -681,13 +695,14 @@ async def change_view_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     call_back_data = update.callback_query.data
 
     effective_message_id = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
+    advertisement = context.user_data[effective_message_id]
 
     if call_back_data.split('_')[-1] != 'skip':
         windows_type = ViewType[call_back_data.split('_')[-1]]
 
-        data.view_type = windows_type
-        context.user_data[effective_message_id] = data
+        advertisement.flat.view_type = [windows_type]
+        advertisement.flat.windows_count = 1
+        context.user_data[effective_message_id] = advertisement
 
     await update.effective_message.reply_text(
         text='Санузел в квартире какой?',
@@ -698,7 +713,7 @@ async def change_view_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await edit_caption_or_text(
         context.user_data['effective_message'],
-        get_appropriate_text(data),
+        get_appropriate_text(advertisement),
     )
 
     return AddRoomDialogStates.TOILET_TYPE
@@ -710,13 +725,13 @@ async def change_toilet_type(update: Update, context: ContextTypes.DEFAULT_TYPE)
     call_back_data = update.callback_query.data
 
     effective_message_id = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
+    advertisement = context.user_data[effective_message_id]
 
     if call_back_data.split('_')[-1] != 'skip':
         toilet_type = ToiletType[call_back_data.split('_')[-1]]
 
-        data.toilet_type = toilet_type
-        context.user_data[effective_message_id] = data
+        advertisement.flat.toilet_type = toilet_type
+        context.user_data[effective_message_id] = advertisement
 
     message = await update.effective_message.reply_text(
         text='Введите информацию о комнатах (пропустить. -> /0)\n'
@@ -732,7 +747,7 @@ async def change_toilet_type(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     await edit_caption_or_text(
         context.user_data['effective_message'],
-        get_appropriate_text(data),
+        get_appropriate_text(advertisement),
     )
 
     return AddRoomDialogStates.ROOMS_INFO
@@ -740,7 +755,7 @@ async def change_toilet_type(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def change_rooms_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     effective_message_id = context.user_data['effective_message_id']
-    data = context.user_data[effective_message_id]
+    advertisement = context.user_data[effective_message_id]
 
     if update.message.text != '/0':
         # full_pattern = r"((\d+)/(\d+([.,]\d+)?)[\s-]?([ЖНСРжнср\s])\((.*)\))[.,]?"
@@ -752,7 +767,7 @@ async def change_rooms_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         print(matches)
 
-        if len(matches) != data.number_of_rooms_in_flat:
+        if len(matches) != advertisement.flat.number_of_rooms:
             message = await update.message.reply_text(
                 "Количество введенных комнат отличается от количества комнат в квартире"
             )
@@ -762,30 +777,38 @@ async def change_rooms_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         rooms = []
 
         for match in matches:
-            room_plan_number = match[0]
             room_area = float(match[1].replace(',', '.'))
-            room_status = RoomType.FOR_RENT
-            room_description = match[3]
+            room_plan_number = match[0]
+            room_type = RoomTypeEnum.LIVING
+            room_status = RoomStatusEnum.LIVING
+            room_owners = [RoomOwnersEnum.MALE]
+            room_refusal_status = RoomRefusalStatusEnum.NO
+            room_occupants = [RoomOccupantsEnum.MALE]
+            room_comment = match[3]
 
-            room = RoomInfoCreate(
-                number=room_plan_number,
+            room = RoomBase(
                 area=room_area,
+                number_on_plan=room_plan_number,
+                type=room_type,
                 status=room_status,
-                description=room_description,
+                owners=room_owners,
+                refusal_status=room_refusal_status,
+                occupants=room_occupants,
+                comment=room_comment,
             )
 
             rooms.append(room)
 
-        data.rooms_info = rooms
-        context.user_data[effective_message_id] = data
+        advertisement.flat.rooms = rooms
+        context.user_data[effective_message_id] = advertisement
 
-    await update_message_and_delete_messages(update, context, data)
+    await update_message_and_delete_messages(update, context, advertisement)
 
-    keyboard = get_appropriate_keyboard(-1, data)
+    keyboard = get_appropriate_keyboard(-1, advertisement)
 
     await edit_caption_or_text(
         context.user_data['effective_message'],
-        get_appropriate_text(data),
+        get_appropriate_text(advertisement),
         reply_markup=keyboard,
     )
 
@@ -797,100 +820,18 @@ async def change_rooms_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def send(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pprint.pprint(context.user_data)
-    data = context.user_data[update.effective_message.id]
+    advertisement = context.user_data[update.effective_message.id]
 
-    try:
-        session: AsyncSession = context.session
-    except AttributeError:
-        raise Exception('Session is not in context')
+    advertisement.flat.flat_entrance_type = FlatEntranceType.ONE
+    advertisement = await create_advertisement(context.session, advertisement)
 
-    try:
-        room_id = int(data.cadastral_number.replace(':', '')[-8:])
-        room_create = RoomCreate(
-            id=room_id,
-            room_area=data.room_area,
-            flat_area=data.flat_area,
-            number_of_rooms_in_flat=data.number_of_rooms_in_flat,
-            flour=data.flour,
-            flours_in_building=data.flours_in_building,
-            address=data.address,
-            plan_telegram_file_id=data.plan_telegram_file_id,
-            flat_number=data.flat_number,
-            flat_height=data.flat_height,
-            cadastral_number=data.cadastral_number,
-            house_is_historical=data.house_is_historical,
-            elevator_nearby=data.elevator_nearby,
-            entrance_type=data.entrance_type,
-            view_type=data.view_type,
-            toilet_type=data.toilet_type,
-            under_room_is_living=data.under_room_is_living,
-        )
+    text = get_appropriate_text(advertisement)
 
-    except (ValidationError, AttributeError) as e:
-        logger.error(e)
-        await update.callback_query.answer(
-            text='Заполните все поля',
-            show_alert=True,
-        )
-        return
-
-    try:
-        room = await room_service.create_room(session, room_create)
-    except ValueError as e:
-        logger.error(e)
-        await update.callback_query.answer(
-            text='Квартира с таким кадастровым номером уже существует',
-            show_alert=True,
-        )
-        return
-
-    if not data.rooms_info:
-        await update.callback_query.answer(
-            text='Заполните все поля',
-            show_alert=True,
-        )
-        return
-
-    await room_info_service.create_rooms_info(session, data.rooms_info, room)
-
-    try:
-        advertisement_create = AdvertisementCreate(
-            url=data.url,
-            price=data.price,
-            contact_phone=data.contact_phone,
-            contact_status=data.contact_status,
-            contact_name=data.contact_name,
-            description=data.description,
-
-            room_id=room.id,
-
-            added_by_id=update.effective_user.id,
-        )
-    except ValidationError as e:
-        logger.error(e)
-        await update.callback_query.answer(
-            text='Заполните все поля',
-            show_alert=True,
-        )
-        return
-
-    advertisement = await advertisement_service.create_advertisement(session, advertisement_create)
-
-    await session.commit()
-    await session.refresh(advertisement, attribute_names=['added_by'])
-    await session.refresh(advertisement, attribute_names=['added_at'])
-
-    data.added_by = advertisement.added_by
-    data.added_at = advertisement.added_at
-
-    text = get_appropriate_text(data)
-
-    admins = await user_service.get_admins(session)
+    admins = await user_service.get_admins(context.session)
     for admin in admins:
         message = await context.bot.send_photo(
             chat_id=admin.id,
-            photo=data.plan_telegram_file_id,
+            photo=advertisement.flat.plan_telegram_file_id,
             caption=text,
             reply_markup=get_review_keyboard(advertisement_id=advertisement.id),
             parse_mode='HTML',
@@ -913,6 +854,7 @@ async def cancel_room_adding(update: Update, context: ContextTypes.DEFAULT_TYPE)
         'Отмена добавления комнаты (данные не сохранены)',
     )
     await delete_messages(context)
+    await delete_message_or_skip(update.message)
     return ConversationHandler.END
 
 
@@ -921,6 +863,7 @@ async def cancel_plan_adding(update: Update, context: ContextTypes.DEFAULT_TYPE)
         'Отмена добавления план (данные не сохранены)',
     )
     await delete_messages(context)
+    await delete_message_or_skip(update.message)
     return ConversationHandler.END
 
 
@@ -929,11 +872,13 @@ async def cancel_phone_adding(update: Update, context: ContextTypes.DEFAULT_TYPE
         'Отмена добавления телефона (данные не сохранены)',
     )
     await delete_messages(context)
+    await delete_message_or_skip(update.message)
     return ConversationHandler.END
 
 
 async def cancel_info_adding(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await delete_messages(context)
+    await delete_message_or_skip(update.message)
     await update.effective_message.reply_text(
         'Отмена добавления информации (данные не сохранены)',
     )
@@ -958,6 +903,10 @@ async def show_data_from_ad(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def delete_message_data_from_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.answer()
-
-    await update.effective_message.delete()
+    if not await delete_message_or_skip(update.effective_message):
+        await update.callback_query.answer(
+            text='К сожалению не получается удалить это сообщение',
+            show_alert=True,
+        )
+    else:
+        await update.callback_query.answer()

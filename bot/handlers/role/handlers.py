@@ -4,7 +4,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 from database.models import User
 from database.enums import UserRole
 
-from bot.service import user as user_service
+from bot.crud import user as user_service
 
 from .keyboards import get_roles_keyboard, get_confirmation_keyboard
 from .manage_data import AddRoleConversationSteps

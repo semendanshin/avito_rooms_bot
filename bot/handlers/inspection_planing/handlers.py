@@ -1,23 +1,24 @@
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
-from database.models import Advertisement, Inspection
-from database.types import AdvertisementStatus, DataToGather, AdvertisementResponse
+from database.models import Inspection
+from bot.schemas.types import AdvertisementStatus
+from bot.schemas.types import AdvertisementBase
 
-from bot.utils.utils import validate_message_text, delete_message_or_skip
+from bot.utils.utils import validate_message_text, delete_message_or_skip, delete_messages
 from bot.utils.resend_old_message import check_and_resend_old_message
 
-from bot.service import advertisement as advertisement_service
-from bot.service import user as user_service
+from bot.crud import advertisement as advertisement_service
+from bot.crud import user as user_service
 
 from .static_text import INSPECTION_PLANING_TEMPLATE
 from .manage_data import InspectionPlaningConversationSteps, InspectionTimePeriods
 from .keyboards import get_time_periods_keyboard, get_confirm_keyboard, get_inspection_review_keyboard
 
-from bot.handlers.rooms.manage_data import fill_first_room_template
+from bot.handlers.rooms.manage_data import fill_first_room_template, refresh_advertisement
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import date, time
+from datetime import date
 import re
 
 
@@ -132,9 +133,8 @@ async def save_meting_tip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['inspection'].meting_tip_text = text
     context.user_data['inspection'].meting_tip_photo_id = photo.file_id if photo else None
 
-    for el in context.user_data['messages_to_delete']:
-        await el.delete()
-    await update.message.delete()
+    await delete_messages(context)
+    await delete_message_or_skip(update.message)
 
     meting_tip_text = context.user_data["inspection"].meting_tip_text
 
@@ -147,10 +147,10 @@ async def save_meting_tip(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session,
         context.user_data["inspection"].advertisement_id
     )
-    await session.refresh(advertisement, attribute_names=["room"])
+    advertisement = await refresh_advertisement(session, advertisement)
 
     text = INSPECTION_PLANING_TEMPLATE.format(
-        address=advertisement.room.address + ' кв. ' + advertisement.room.flat_number,
+        address=advertisement.flat.house.street_name + ' ' + advertisement.flat.house.number + ' кв. ' + advertisement.flat.flat_number,
         # day_of_week=context.user_data["inspection"].inspection_date.strftime("%a"),
         day_of_week='',
         inspection_date=context.user_data["inspection"].inspection_date.strftime("%d.%m"),
@@ -190,15 +190,7 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     session.add(inspection)
 
     advertisement = await advertisement_service.get_advertisement(session, inspection.advertisement_id)
-    await session.refresh(advertisement, attribute_names=["room"])
-    await session.refresh(advertisement.room, attribute_names=["rooms_info"])
-    await session.refresh(advertisement, attribute_names=["added_by"])
-    advertisement = AdvertisementResponse.model_validate(advertisement)
-
-    data = DataToGather(
-        **advertisement.model_dump(),
-        **advertisement.room.model_dump(),
-    )
+    advertisement = await refresh_advertisement(session, advertisement)
 
     advertisement.status = AdvertisementStatus.ASSIGNED
 
@@ -209,9 +201,9 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
         show_alert=True,
     )
 
-    text = fill_first_room_template(data)
+    text = fill_first_room_template(advertisement)
     text += '\n' + INSPECTION_PLANING_TEMPLATE.format(
-        address=advertisement.room.address + ' кв. ' + advertisement.room.flat_number,
+        address=advertisement.flat.house.street_name + ' ' + advertisement.flat.house.number + ' кв. ' + advertisement.flat.flat_number,
         # day_of_week=inspection.inspection_date.strftime("%a"),
         day_of_week='',
         inspection_date=inspection.inspection_date.strftime("%d.%m"),
@@ -225,8 +217,8 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for user in await user_service.get_admins(session):
         message = await context.bot.send_photo(
-            photo=data.plan_telegram_file_id,
-            reply_markup=get_inspection_review_keyboard(advertisement_id=advertisement.advertisement_id),
+            photo=advertisement.flat.plan_telegram_file_id,
+            reply_markup=get_inspection_review_keyboard(advertisement_id=advertisement.id),
             chat_id=user.id,
             caption=text,
             parse_mode='HTML',

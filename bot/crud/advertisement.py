@@ -1,8 +1,8 @@
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import Advertisement
-from database.types import AdvertisementCreate
-from database.types import AdvertisementStatus
+from bot.schemas.types import AdvertisementCreate
+from bot.schemas.types import AdvertisementStatus
 from typing import Optional
 
 

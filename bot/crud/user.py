@@ -1,7 +1,7 @@
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import User
-from database.types import UserCreate
+from bot.schemas.types import UserCreate
 from database.enums import UserRole
 from typing import Optional
 

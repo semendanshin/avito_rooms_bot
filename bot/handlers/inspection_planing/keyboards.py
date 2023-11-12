@@ -1,6 +1,6 @@
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 
-from database.types import AdvertisementStatus
+from database.enums import AdvertisementStatus
 
 from .manage_data import InspectionTimePeriods
 

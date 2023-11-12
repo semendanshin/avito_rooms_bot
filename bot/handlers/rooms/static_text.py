@@ -15,14 +15,10 @@ DATA_FROM_ADVERTISEMENT_TEMPLATE = """
 {price}тр({price_per_meter}тр/м2)
 """
 
-PARSED_ROOM_TEMPLATE = """
-<b>Комната {room_area} м² в {number_of_rooms_in_flat}-к. кв, {flour}/{flours_in_building} эт.</b>
+PARSED_ROOM_TEMPLATE = """<b>Комната {room_area} м² в {number_of_rooms_in_flat}-к. кв, {flour}/{flours_in_building} эт.</b>
 {address}
-{price} тр
-"""
-CONTACT_INFO_TEMPLATE = """
-{contact_phone} {contact_status}-{contact_name}
-"""
+{price} тр"""
+CONTACT_INFO_TEMPLATE = """{contact_phone} {contact_status}-{contact_name}"""
 ADDITIONAL_INFO = """
 <b>Номер квартиры:</b> {flat_number}
 <b>Кадастровый номер:</b> {cadastral_number}

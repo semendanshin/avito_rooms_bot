@@ -3,13 +3,12 @@ import pprint
 from telegram import Update
 from telegram.ext import ConversationHandler, ContextTypes
 
-from bot.handlers.rooms.manage_data import AddRoomDialogStates, get_data_by_advertisement, get_data_by_advertisement_id
+from bot.handlers.rooms.manage_data import AddRoomDialogStates,
 from bot.handlers.rooms.handlers import (get_appropriate_text,
                                          update_message_and_delete_messages, edit_caption_or_text)
 from bot.handlers.review.keyboards import get_plan_inspection_keyboard
-from bot.service import advertisement as advertisement_service
-from bot.service import room as room_service
-from bot.service import room_info as room_info_service
+from bot.crud import advertisement as advertisement_service
+from bot.crud import room as room_service
 from bot.utils.utils import delete_messages, delete_message_or_skip, validate_message_text, cadnum_to_id
 from bot.utils.dadata_repository import dadata
 
@@ -22,8 +21,8 @@ from bot.handlers.rooms.keyboards import (
 )
 from database.models import Advertisement
 
-from database.types import DataToGather, RoomInfoCreate
-from database.enums import EntranceType, ViewType, ToiletType, RoomType
+from bot.schemas.types import AdvertisementBase
+from database.enums import HouseEntranceType, ViewType, ToiletType
 
 import re
 
@@ -508,7 +507,7 @@ async def edit_entrance_type(update: Update, context: ContextTypes.DEFAULT_TYPE)
     advertisement: Advertisement = context.user_data.get("effective_advertisement")
 
     if callback_data.split('_')[-1] != 'skip':
-        advertisement.room.entrance_type = EntranceType[callback_data.split('_')[-1]]
+        advertisement.room.entrance_type = HouseEntranceType[callback_data.split('_')[-1]]
         context.user_data['effective_advertisement'] = advertisement
 
     await update.effective_message.delete()

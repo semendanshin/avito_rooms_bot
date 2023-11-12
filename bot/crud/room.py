@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import Room
-from database.types import RoomCreate
+from bot.schemas.types import RoomCreate
 from typing import Optional
 
 

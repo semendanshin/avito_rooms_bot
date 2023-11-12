@@ -4,9 +4,9 @@ from telegram.ext import ContextTypes, ConversationHandler
 from bot.utils.utils import validate_message_text, delete_messages
 from bot.utils.resend_old_message import check_and_resend_old_message
 
-from bot.service import advertisement as advertisement_service
+from bot.crud import advertisement as advertisement_service
 
-from database.types import AdvertisementResponse
+from bot.handlers.rooms.manage_data import refresh_advertisement
 
 from .manage_data import CalculateRoomDialogStates
 from .static_text import CALCULATING_RESULT_TEMPLATE
@@ -111,12 +111,7 @@ async def process_calculation(update: Update, context: ContextTypes.DEFAULT_TYPE
         raise Exception('Session is not in context')
 
     advertisement = await advertisement_service.get_advertisement(session, data.get('ad_id'))
-
-    await session.refresh(advertisement, attribute_names=['room'])
-    await session.refresh(advertisement.room, attribute_names=["rooms_info"])
-    await session.refresh(advertisement, attribute_names=['added_by'])
-
-    advertisement = AdvertisementResponse.model_validate(advertisement)
+    advertisement = await refresh_advertisement(session, advertisement)
 
     # Цена кв-ры и комиссия АН: (165*112,6)=>18579*0,1=1858
     # Маржа ЖкОП минус комиссия на 1м2 (МБК на1м2): (112.6-86.5)=>26.1*165=>4306-1858=>2448/86,5=>28
@@ -134,10 +129,10 @@ async def process_calculation(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
         return
 
-    total_living_area = sum([room.area for room in advertisement.room.rooms_info])
-    non_living_area = advertisement.room.flat_area - total_living_area
+    total_living_area = sum([room.area for room in advertisement.flat.rooms])
+    non_living_area = advertisement.flat.area - total_living_area
 
-    flat_price = round(price_per_meter_for_buy * advertisement.room.flat_area)
+    flat_price = round(price_per_meter_for_buy * advertisement.flat.area)
     agent_commission_price = round(flat_price * agent_commission / 100)
 
     non_living_price = non_living_area * price_per_meter_for_buy
@@ -148,20 +143,20 @@ async def process_calculation(update: Update, context: ContextTypes.DEFAULT_TYPE
     room_info_template = '{room_number}/{room_area}-{status}={refusal} -> Д={part_price}'
     room_for_sale_addition = ' -- КОМ({price_per_meter_for_sell})={room_price} -- {living_period}мес={profit_year_percent}%'
 
-    for el in advertisement.room.rooms_info:
+    for el in advertisement.flat.rooms:
         part_price = round(
-            price_per_meter_for_buy * advertisement.room.flat_area * el.area / total_living_area * (
+            price_per_meter_for_buy * advertisement.flat.area * el.area / total_living_area * (
                         1 - agent_commission / 100),
         )
         rooms_info_text += room_info_template.format(
-            room_number=el.number,
+            room_number=el.number_on_plan,
             room_area=el.area,
             # description=el.description,
             status='',
             refusal='',
             part_price=part_price
         )
-        if 'ПП' in el.description or 'ВСТ' in el.description:
+        if 'ПП' in el.comment or 'ВСТ' in el.comment:
             rooms_info_text += room_for_sale_addition.format(
                 price_per_meter_for_sell=int(price_per_meter_for_sell),
                 living_period=int(living_period),
@@ -174,23 +169,23 @@ async def process_calculation(update: Update, context: ContextTypes.DEFAULT_TYPE
         rooms_info_text += '\n'
 
     text = CALCULATING_RESULT_TEMPLATE.format(
-        address=advertisement.room.address,
-        flat_number=advertisement.room.flat_number,
-        cadastral_number=advertisement.room.cadastral_number,
-        is_historical='Памятник' if advertisement.room.house_is_historical else '',
-        flour=advertisement.room.flour,
-        room_under='(кв)' if advertisement.room.under_room_is_living else '(н)',
-        flours_in_building=advertisement.room.flours_in_building,
-        elevator='бл' if not advertisement.room.elevator_nearby else '',
-        entrance_type=advertisement.room.entrance_type,
-        windows_type=advertisement.room.view_type,
-        toilet_type=advertisement.room.toilet_type,
-        flat_area=advertisement.room.flat_area,
+        address=advertisement.flat.house.street_name + ' ' + advertisement.flat.house.number,
+        flat_number=advertisement.flat.flat_number,
+        cadastral_number=advertisement.flat.cadastral_number,
+        is_historical='Памятник' if advertisement.flat.house.is_historical else '',
+        flour=advertisement.flat.flour,
+        room_under='(кв)' if advertisement.flat.under_room_is_living else '(н)',
+        flours_in_building=advertisement.flat.house.number_of_flours,
+        elevator='бл' if not advertisement.flat.elevator_nearby else '',
+        entrance_type=advertisement.flat.house_entrance_type.value,
+        windows_type=' '.join([el.value for el in advertisement.flat.view_type]),
+        toilet_type=advertisement.flat.toilet_type.value,
+        flat_area=advertisement.flat.area,
         living_area=round(total_living_area, 2),
-        living_area_percent=int(total_living_area / advertisement.room.flat_area * 100),
-        flat_height=advertisement.room.flat_height,
-        price=advertisement.price // 1000,
-        price_per_meter=int(advertisement.price / advertisement.room.room_area / 1000),
+        living_area_percent=int(total_living_area / advertisement.flat.area * 100),
+        flat_height=advertisement.flat.flat_height,
+        price=advertisement.room_price // 1000,
+        price_per_meter=int(advertisement.room_price / advertisement.room_area / 1000),
         rooms_info=rooms_info_text,
         price_per_meter_for_buy=int(price_per_meter_for_buy),
         flat_price=flat_price,
@@ -201,8 +196,10 @@ async def process_calculation(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     await update.effective_message.reply_text(
         text=text,
-        reply_markup=get_calculate_keyboard(advertisement_id=advertisement.advertisement_id),
+        reply_markup=get_calculate_keyboard(advertisement_id=advertisement.id),
     )
+
+    return ConversationHandler.END
 
 
 async def calculate_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
