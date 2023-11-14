@@ -21,12 +21,10 @@ from bot.handlers.role import handlers as role_handlers
 from bot.handlers.inspection_planing import handlers as inspection_planing_handlers
 from bot.handlers.calculations import handlers as calculations_handlers
 from bot.handlers.review import handlers as review_handlers
-# from bot.handlers.edit_advertisement import handlers as edit_advertisement_handlers
+from bot.handlers.edit_advertisement import handlers as edit_advertisement_handlers
 
 from bot.handlers.onboarding.static_text import (
     ADD_ROOM_KEYBOARD_TEXT,
-    STATISTICS_KEYBOARD_TEXT,
-    CANCEL_KEYBOARD_TEXT,
     SET_ROLE_KEYBOARD_TEXT,
     GET_ROLES_KEYBOARD_TEXT,
 )
@@ -41,7 +39,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from logging.handlers import RotatingFileHandler
 import logging
 
-import locale
+# import locale
 
 
 # locale.setlocale(locale.LC_ALL, 'ru_RU.UTF-8')
@@ -105,20 +103,20 @@ def main():
         name='plan_handler',
     )
 
-    # edit_plan_handler = ConversationHandler(
-    #     entry_points=[CallbackQueryHandler(edit_advertisement_handlers.start_edit_plan, pattern=r'edit_plan_.*')],
-    #     states={
-    #         rooms_handlers.AddRoomDialogStates.FLAT_PLAN: [
-    #             MessageHandler(
-    #                 filters=filters.PHOTO,
-    #                 callback=edit_advertisement_handlers.edit_plan,
-    #             ),
-    #         ],
-    #     },
-    #     fallbacks=[CommandHandler('cancel', rooms_handlers.cancel_plan_adding)],
-    #     persistent=True,
-    #     name='edit_plan_handler',
-    # )
+    edit_plan_handler = ConversationHandler(
+        entry_points=[CallbackQueryHandler(edit_advertisement_handlers.start_edit_plan, pattern=r'edit_plan_.*')],
+        states={
+            rooms_handlers.AddRoomDialogStates.FLAT_PLAN: [
+                MessageHandler(
+                    filters=filters.PHOTO,
+                    callback=edit_advertisement_handlers.edit_plan,
+                ),
+            ],
+        },
+        fallbacks=[CommandHandler('cancel', rooms_handlers.cancel_plan_adding)],
+        persistent=True,
+        name='edit_plan_handler',
+    )
 
     phone_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(rooms_handlers.start_change_phone, pattern=r'change_phone_.*')],
@@ -135,20 +133,20 @@ def main():
         name='phone_handler',
     )
 
-    # edit_phone_handler = ConversationHandler(
-    #     entry_points=[CallbackQueryHandler(edit_advertisement_handlers.start_edit_phone, pattern=r'edit_phone_.*')],
-    #     states={
-    #         rooms_handlers.AddRoomDialogStates.CONTACT_PHONE: [
-    #             MessageHandler(
-    #                 filters=filters.TEXT & ~filters.Command(),
-    #                 callback=edit_advertisement_handlers.edit_phone,
-    #             ),
-    #         ],
-    #     },
-    #     fallbacks=[CommandHandler('cancel', rooms_handlers.cancel_phone_adding)],
-    #     persistent=True,
-    #     name='edit_phone_handler',
-    # )
+    edit_phone_handler = ConversationHandler(
+        entry_points=[CallbackQueryHandler(edit_advertisement_handlers.start_edit_phone, pattern=r'edit_phone_.*')],
+        states={
+            rooms_handlers.AddRoomDialogStates.CONTACT_PHONE: [
+                MessageHandler(
+                    filters=filters.TEXT & ~filters.Command(),
+                    callback=edit_advertisement_handlers.edit_phone,
+                ),
+            ],
+        },
+        fallbacks=[CommandHandler('cancel', rooms_handlers.cancel_phone_adding)],
+        persistent=True,
+        name='edit_phone_handler',
+    )
 
     info_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(rooms_handlers.start_change_info, pattern=r'change_info_.*')],
@@ -221,76 +219,62 @@ def main():
         name='info_handler',
     )
 
-    # edit_info_handler = ConversationHandler(
-    #     entry_points=[CallbackQueryHandler(edit_advertisement_handlers.start_edit_info, pattern=r'edit_info_.*')],
-    #     states={
-    #         rooms_handlers.AddRoomDialogStates.FLAT_NUMBER: [
-    #             CommandHandler('0', edit_advertisement_handlers.edit_flat_number),
-    #             MessageHandler(
-    #                 filters=filters.TEXT & ~filters.Command(),
-    #                 callback=edit_advertisement_handlers.edit_flat_number,
-    #             ),
-    #         ],
-    #         rooms_handlers.AddRoomDialogStates.KADASTR_NUMBER: [
-    #             CommandHandler('0', edit_advertisement_handlers.edit_cadnum),
-    #             MessageHandler(
-    #                 filters=filters.TEXT & ~filters.Command(),
-    #                 callback=edit_advertisement_handlers.edit_cadnum,
-    #             ),
-    #         ],
-    #         rooms_handlers.AddRoomDialogStates.FLAT_HEIGHT: [
-    #             CommandHandler('0', edit_advertisement_handlers.edit_flat_height),
-    #             MessageHandler(
-    #                 filters=filters.TEXT & ~filters.Command(),
-    #                 callback=edit_advertisement_handlers.edit_flat_height,
-    #             ),
-    #         ],
-    #         rooms_handlers.AddRoomDialogStates.FLAT_AREA: [
-    #             CommandHandler('0', edit_advertisement_handlers.edit_flat_area),
-    #             MessageHandler(
-    #                 filters=filters.TEXT & ~filters.Command(),
-    #                 callback=edit_advertisement_handlers.edit_flat_area,
-    #             ),
-    #         ],
-    #         rooms_handlers.AddRoomDialogStates.HOUSE_IS_HISTORICAL: [
-    #             CallbackQueryHandler(
-    #                 edit_advertisement_handlers.edit_house_is_historical,
-    #                 pattern=r'is_historical_.*',
-    #             )
-    #         ],
-    #         rooms_handlers.AddRoomDialogStates.ELEVATOR_NEARBY: [
-    #             CallbackQueryHandler(
-    #                 edit_advertisement_handlers.edit_elevator_nearby,
-    #                 pattern=r'is_elevator_nearby_.*',
-    #             )
-    #         ],
-    #         rooms_handlers.AddRoomDialogStates.ROOM_UNDER: [
-    #             CallbackQueryHandler(
-    #                 edit_advertisement_handlers.edit_room_under,
-    #                 pattern=r'room_under_is_living_.*',
-    #             )
-    #         ],
-    #         rooms_handlers.AddRoomDialogStates.ENTRANCE_TYPE: [
-    #             CallbackQueryHandler(edit_advertisement_handlers.edit_entrance_type, pattern=r'entrance_type_.*'),
-    #         ],
-    #         rooms_handlers.AddRoomDialogStates.WINDOWS_TYPE: [
-    #             CallbackQueryHandler(edit_advertisement_handlers.edit_view_type, pattern=r'view_type.*'),
-    #         ],
-    #         rooms_handlers.AddRoomDialogStates.TOILET_TYPE: [
-    #             CallbackQueryHandler(edit_advertisement_handlers.edit_toilet_type, pattern=r'toilet_type.*'),
-    #         ],
-    #         rooms_handlers.AddRoomDialogStates.ROOMS_INFO: [
-    #             CommandHandler('0', edit_advertisement_handlers.edit_rooms_info),
-    #             MessageHandler(
-    #                 filters=filters.TEXT & ~filters.Command(),
-    #                 callback=edit_advertisement_handlers.edit_rooms_info,
-    #             ),
-    #         ],
-    #     },
-    #     fallbacks=[CommandHandler('cancel', edit_advertisement_handlers.cancel_edit_info)],
-    #     persistent=True,
-    #     name='edit_info_handler',
-    # )
+    edit_info_handler = ConversationHandler(
+        entry_points=[CallbackQueryHandler(edit_advertisement_handlers.start_edit_info, pattern=r'edit_info_.*')],
+        states={
+            rooms_handlers.AddRoomDialogStates.FLAT_HEIGHT: [
+                CommandHandler('0', edit_advertisement_handlers.edit_flat_height),
+                MessageHandler(
+                    filters=filters.TEXT & ~filters.Command(),
+                    callback=edit_advertisement_handlers.edit_flat_height,
+                ),
+            ],
+            rooms_handlers.AddRoomDialogStates.FLAT_AREA: [
+                CommandHandler('0', edit_advertisement_handlers.edit_flat_area),
+                MessageHandler(
+                    filters=filters.TEXT & ~filters.Command(),
+                    callback=edit_advertisement_handlers.edit_flat_area,
+                ),
+            ],
+            rooms_handlers.AddRoomDialogStates.HOUSE_IS_HISTORICAL: [
+                CallbackQueryHandler(
+                    edit_advertisement_handlers.edit_house_is_historical,
+                    pattern=r'is_historical_.*',
+                )
+            ],
+            rooms_handlers.AddRoomDialogStates.ELEVATOR_NEARBY: [
+                CallbackQueryHandler(
+                    edit_advertisement_handlers.edit_elevator_nearby,
+                    pattern=r'is_elevator_nearby_.*',
+                )
+            ],
+            rooms_handlers.AddRoomDialogStates.ROOM_UNDER: [
+                CallbackQueryHandler(
+                    edit_advertisement_handlers.edit_room_under,
+                    pattern=r'room_under_is_living_.*',
+                )
+            ],
+            rooms_handlers.AddRoomDialogStates.ENTRANCE_TYPE: [
+                CallbackQueryHandler(edit_advertisement_handlers.edit_entrance_type, pattern=r'entrance_type_.*'),
+            ],
+            rooms_handlers.AddRoomDialogStates.WINDOWS_TYPE: [
+                CallbackQueryHandler(edit_advertisement_handlers.edit_view_type, pattern=r'view_type.*'),
+            ],
+            rooms_handlers.AddRoomDialogStates.TOILET_TYPE: [
+                CallbackQueryHandler(edit_advertisement_handlers.edit_toilet_type, pattern=r'toilet_type.*'),
+            ],
+            rooms_handlers.AddRoomDialogStates.ROOMS_INFO: [
+                CommandHandler('0', edit_advertisement_handlers.edit_rooms_info),
+                MessageHandler(
+                    filters=filters.TEXT & ~filters.Command(),
+                    callback=edit_advertisement_handlers.edit_rooms_info,
+                ),
+            ],
+        },
+        fallbacks=[CommandHandler('cancel', edit_advertisement_handlers.cancel_edit_info)],
+        persistent=True,
+        name='edit_info_handler',
+    )
 
     add_room_handler = ConversationHandler(
         entry_points=[
@@ -319,9 +303,9 @@ def main():
             phone_handler,
             plan_handler,
             info_handler,
-            # edit_info_handler,
-            # edit_phone_handler,
-            # edit_plan_handler,
+            edit_info_handler,
+            edit_phone_handler,
+            edit_plan_handler,
             CallbackQueryHandler(rooms_handlers.send, pattern=r'send_.*'),
             CallbackQueryHandler(rooms_handlers.show_data_from_ad, pattern=r'show_data_.*'),
         ]

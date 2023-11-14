@@ -21,7 +21,7 @@ class SessionMiddleware(AbstractMiddleware):
             self.logger.warning('SessionMiddleware: session is not found in context')
         else:
             if session:
-                await session.commit()
+                # await session.commit()
                 await session.close()
                 context.__delattr__('session')
                 self.logger.debug('SessionMiddleware: session is closed')

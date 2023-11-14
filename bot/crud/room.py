@@ -27,3 +27,9 @@ async def update_room(session: AsyncSession, room_id: int, new_data: RoomCreate)
     room.update_from_dict(new_data.model_dump())
     return room
 
+
+async def delete_room(session: AsyncSession, room_id: int) -> None:
+    room = await get_room(session, room_id)
+    if not room:
+        raise ValueError('Room not found')
+    await session.delete(room)

@@ -126,7 +126,7 @@ async def update_message_and_delete_messages(update: Update, context: ContextTyp
         context.user_data['effective_message'],
         get_appropriate_text(advertisement),
     )
-    await update.message.delete()
+    await delete_message_or_skip(update.message)
     await delete_messages(context)
 
 
@@ -217,8 +217,6 @@ async def add_room_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     advertisement.description = result.description
     advertisement.flat.number_of_rooms = result.number_of_rooms_in_flat
     advertisement.flat.flour = result.flour
-
-    advertisement.added_by = context.user
 
     await delete_messages(context)
     await delete_message_or_skip(update.message)
@@ -823,6 +821,7 @@ async def send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     advertisement = context.user_data[update.effective_message.id]
 
     advertisement.flat.flat_entrance_type = FlatEntranceType.ONE
+    advertisement.added_by = context.database_user
     advertisement = await create_advertisement(context.session, advertisement)
 
     text = get_appropriate_text(advertisement)
