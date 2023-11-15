@@ -319,14 +319,14 @@ async def confirm_attachment(update: Update, context: ContextTypes.DEFAULT_TYPE)
         advertisement.pinned_agent_id = agent.id
         advertisement.status = AdvertisementStatus.VIEWED
 
+        message = await send_advertisement(session, context.bot, advertisement_id, dispatcher.id)
+
+        context.bot_data[dispatcher.id] = message.id
+
         await update.callback_query.answer(
             'Отправлено диспетчеру',
             show_alert=True,
         )
-
-        message = await send_advertisement(session, context.bot, advertisement_id, dispatcher.id)
-
-        context.bot_data[dispatcher.id] = message.id
 
         await session.commit()
 

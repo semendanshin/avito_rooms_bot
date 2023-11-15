@@ -151,14 +151,6 @@ async def add_flat_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
     advertisement = context.user_data['effective_advertisement']
 
     if update.message.text != '/0':
-        message = await update.effective_message.reply_text(
-            text='Кадастровый номер (пропустить -> /0) <a href="https://dadata.ru/suggestions/#address">Дадата</a>',
-            parse_mode='HTML',
-            disable_web_page_preview=True,
-        )
-
-        context.user_data["messages_to_delete"] += [message, update.message]
-
         advertisement.flat.flat_number = update.message.text
 
         house_address = 'спб ' + advertisement.flat.house.street_name + ' ' + advertisement.flat.house.number
