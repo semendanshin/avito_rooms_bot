@@ -22,16 +22,20 @@ from bot.handlers.inspection_planing import handlers as inspection_planing_handl
 from bot.handlers.calculations import handlers as calculations_handlers
 from bot.handlers.review import handlers as review_handlers
 from bot.handlers.edit_advertisement import handlers as edit_advertisement_handlers
+from bot.handlers.admin_add_room import handlers as admin_add_room_handlers
 
 from bot.handlers.onboarding.static_text import (
     ADD_ROOM_KEYBOARD_TEXT,
     SET_ROLE_KEYBOARD_TEXT,
     GET_ROLES_KEYBOARD_TEXT,
+    ADMIN_ADD_ADVERTISEMENT_KEYBOARD_TEXT,
 )
 
 from bot.handlers.calculations.manage_data import CalculateRoomDialogStates
 from bot.handlers.review.manage_data import ReviewConversationStates
 from bot.handlers.role.manage_data import AddRoleConversationSteps
+from bot.handlers.inspection_planing.manage_data import InspectionPlaningConversationSteps
+from bot.handlers.admin_add_room.manage_data import AdminAddAdvertisementConversationSteps
 
 from bot.config import config
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -490,6 +494,54 @@ def main():
             fallbacks=[CommandHandler('cancel', inspection_planing_handlers.cancel_inspection_planing)],
             name='plan_inspection_handler',
             persistent=True,
+        )
+    )
+
+    app.add_handler(
+        ConversationHandler(
+            entry_points=[
+                CommandHandler('admin_add_room', admin_add_room_handlers.start_ad_adding),
+                MessageHandler(
+                    filters=filters.Text(ADMIN_ADD_ADVERTISEMENT_KEYBOARD_TEXT),
+                    callback=admin_add_room_handlers.start_ad_adding,
+                )
+            ],
+            states={
+                AdminAddAdvertisementConversationSteps.ADD_URL: [
+                    MessageHandler(
+                        filters=filters.TEXT & ~filters.Command(),
+                        callback=admin_add_room_handlers.add_url,
+                    ),
+                ],
+                AdminAddAdvertisementConversationSteps.CONFIRM_ADDRESS: [
+                    CallbackQueryHandler(
+                        admin_add_room_handlers.confirm_address,
+                        pattern=r'confirm_address_.*',
+                    ),
+                ],
+                AdminAddAdvertisementConversationSteps.ADD_FLAT_NUMBER: [
+                    MessageHandler(
+                        filters=(filters.TEXT | filters.Command) & ~filters.Command(),
+                        callback=admin_add_room_handlers.add_flat_number,
+                    ),
+                    CommandHandler('0', admin_add_room_handlers.add_flat_number),
+                ],
+                AdminAddAdvertisementConversationSteps.FLAT_ALREADY_EXISTS: [
+                    CallbackQueryHandler(
+                        admin_add_room_handlers.flat_already_exists,
+                        pattern=r'flat_already_exists_.*',
+                    ),
+                ],
+                AdminAddAdvertisementConversationSteps.CHOOSE_DISPATCHER: [
+                    CallbackQueryHandler(
+                        admin_add_room_handlers.choose_dispatcher,
+                        pattern=r'choose_dispatcher_.*',
+                    ),
+                ],
+            },
+            fallbacks=[CommandHandler('cancel', admin_add_room_handlers.cancel)],
+            persistent=True,
+            name='admin_add_room_handler',
         )
     )
 

@@ -485,11 +485,11 @@ async def edit_rooms_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # advertisement.flat_cadastral_number = data.cadastral_number if data.cadastral_number is not None else advertisement.flat.cadastral_number
     # advertisement.flat.cadastral_number = data.cadastral_number if data.cadastral_number is not None else advertisement.flat.cadastral_number
     advertisement.flat.area = data.flat_area if data.flat_area is not None else advertisement.flat.area
-    advertisement.flat.height = data.flat_height if data.flat_height is not None else advertisement.flat.height
+    advertisement.flat.flat_height = data.flat_height if data.flat_height is not None else advertisement.flat.flat_height
     advertisement.flat.house.is_historical = data.is_historical if data.is_historical is not None else advertisement.flat.house.is_historical
     advertisement.flat.elevator_nearby = data.elevator_nearby if data.elevator_nearby is not None else advertisement.flat.elevator_nearby
     advertisement.flat.under_room_is_living = data.under_room_is_living if data.under_room_is_living is not None else advertisement.flat.under_room_is_living
-    advertisement.flat.house.entrance_type = data.house_entrance_type if data.house_entrance_type is not None else advertisement.flat.house.entrance_type
+    advertisement.flat.house_entrance_type = data.house_entrance_type if data.house_entrance_type is not None else advertisement.flat.house_entrance_type
     advertisement.flat.view_type = data.view_type if data.view_type != [] else advertisement.flat.view_type
     advertisement.flat.windows_count = data.windows_count if data.windows_count is not None else advertisement.flat.windows_count
     advertisement.flat.toilet_type = data.toilet_type if data.toilet_type is not None else advertisement.flat.toilet_type

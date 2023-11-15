@@ -202,7 +202,6 @@ async def add_room_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     house = await house_service.get_house(session, dadata_data.house_cadnum)
     if not house:
-        advertisement.flat.house = HouseBase()
         advertisement.flat.house.cadastral_number = dadata_data.house_cadnum
         advertisement.flat.house.street_name = dadata_data.street + ' ' + dadata_data.street_type
         advertisement.flat.house.number = dadata_data.house

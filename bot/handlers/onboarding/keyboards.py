@@ -5,6 +5,7 @@ from .static_text import (
     CANCEL_KEYBOARD_TEXT,
     SET_ROLE_KEYBOARD_TEXT,
     GET_ROLES_KEYBOARD_TEXT,
+    ADMIN_ADD_ADVERTISEMENT_KEYBOARD_TEXT,
 )
 
 
@@ -22,7 +23,7 @@ def get_admin_keyboard() -> ReplyKeyboardMarkup:
     keyboard = [
         [
             KeyboardButton(STATISTICS_KEYBOARD_TEXT),
-            KeyboardButton(ADD_ROOM_KEYBOARD_TEXT),
+            KeyboardButton(ADMIN_ADD_ADVERTISEMENT_KEYBOARD_TEXT),
         ],
         [
             KeyboardButton(SET_ROLE_KEYBOARD_TEXT),
