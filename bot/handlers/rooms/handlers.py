@@ -2,7 +2,7 @@ from telegram import Update, Message, ReplyKeyboardMarkup, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.ext import ConversationHandler
 
-from avito_parser import scrape_avito_room_ad, TooManyRequests, AvitoScrapingException
+from avito_parser import scrape_avito_room_ad, TooManyRequests, AvitoScrapingException, ClosedAd
 
 from bot.schemas.types import AdvertisementBase, RoomBase, HouseBase
 from database.enums import HouseEntranceType, ViewType, ToiletType, RoomTypeEnum, RoomStatusEnum, RoomOwnersEnum, \
@@ -168,13 +168,19 @@ async def add_room_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         result = await scrape_avito_room_ad(url)
     except TooManyRequests:
         message = await update.message.reply_text(
-            'Авито блокирует подключения. Невозможно получить данные с сайте.',
+            'Авито блокирует подключения. Невозможно получить данные с сайте. Напишите /cancel, чтобы отменить добавление',
+        )
+        context.user_data['messages_to_delete'].extend([message, update.message])
+        return
+    except ClosedAd:
+        message = await update.message.reply_text(
+            'Объявление снято с публикации. Напишите /cancel, чтобы отменить добавление',
         )
         context.user_data['messages_to_delete'].extend([message, update.message])
         return
     except AvitoScrapingException:
         message = await update.message.reply_text(
-            'Не удалось получить информацию по ссылке, попробуйте еще раз',
+            'Не удалось получить информацию по ссылке, попробуйте еще раз. Напишите /cancel, чтобы отменить добавление',
         )
         context.user_data['messages_to_delete'].extend([message, update.message])
         return

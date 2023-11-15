@@ -46,7 +46,7 @@ class RoomOwnersEnum(pyEnum):
 class RoomRefusalStatusEnum(pyEnum):
     NOTARY = 'НОТ'
     WRITTEN = 'ПИС'
-    NO = 'НЕТ'
+    NO = 'нет'
     ROOM_ON_DIRECT_SALE = 'ПП'
     ROOM_ON_CROSS_SALE = 'ВСТ'
     OTHER_ROOM_OF_SELLER = 'СОБ'

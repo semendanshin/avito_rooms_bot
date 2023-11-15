@@ -17,12 +17,20 @@ class TooManyRequests(AvitoScrapingException):
     pass
 
 
+class ClosedAd(AvitoScrapingException):
+    pass
+
+
 async def scrape_content(content: str) -> dict:
+    # data-marker = item-view/closed-warnin
     area_pattern = r'(\d+(?:[.,]\d+)?)\s*м²'
     rooms_pattern = r'(\d+)\s*-\s*к\.'
     floor_pattern = r'(\d+)\s*/\s*(\d+)\s*эт\.'
 
     soup = BeautifulSoup(content, 'html.parser')
+
+    if soup.find('a', {'data-marker': 'item-view/closed-warning'}):
+        raise ClosedAd()
 
     title = soup.find('h1', itemprop='name').text
 
