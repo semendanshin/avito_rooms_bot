@@ -229,6 +229,8 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     effective_message = context.user_data['effective_message']
     await effective_message.edit_reply_markup(reply_markup=None)
 
+    del context.user_data['inspection']
+
     return ConversationHandler.END
 
 
@@ -255,5 +257,7 @@ async def cancel_inspection_planing(update: Update, context: ContextTypes.DEFAUL
     await update.message.reply_text(
         'Создание осмотра отменено'
     )
+
+    del context.user_data['inspection']
 
     return ConversationHandler.END
