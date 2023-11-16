@@ -140,7 +140,6 @@ async def view_advertisement(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
             await delete_messages(context)
             await delete_message_or_skip(effective_message)
-            await update.effective_message.delete()
 
             return ConversationHandler.END
 
