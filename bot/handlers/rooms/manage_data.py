@@ -89,7 +89,15 @@ def fill_first_room_template(advertisement: AdvertisementBase) -> str:
 
     rooms_info = '\n'.join(
         [
-            f'{room.number_on_plan}/{room.area}{room.comment if room.comment else ""}'
+            '{number_on_plan}/{area}-{status}({owners} {occupants} {refusal_status} {comment})'.format(
+                number_on_plan=room.number_on_plan,
+                area=room.area,
+                status=room.status.value if room.status else '',
+                owners=' '.join(f'{room.owners.count(owner)}{owner.value}' for owner in set(room.owners)),
+                occupants=' '.join(f'{room.occupants.count(occupant)}{occupant.value}' for occupant in set(room.occupants)),
+                refusal_status=room.refusal_status.value if room.refusal_status else '',
+                comment=room.comment if room.comment else '',
+            )
             for room in advertisement.flat.rooms
         ]
     ) if advertisement.flat.rooms else ''
@@ -123,7 +131,7 @@ def fill_first_room_template(advertisement: AdvertisementBase) -> str:
         url=str(advertisement.url),
     )
 
-    if advertisement.added_by:
+    if advertisement.added_by and advertisement.added_at:
         fio = fill_user_fio_template(advertisement.added_by)
         text += DISPATCHER_USERNAME_TEMPLATE.format(
             fio=fio,

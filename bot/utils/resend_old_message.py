@@ -63,7 +63,6 @@ async def resend_old_message(update: Update, context: ContextTypes) -> Message:
                     parse_mode='HTML',
                 )
             if advertisement.status == AdvertisementStatus.VIEWED:
-
                 message = await context.bot.send_photo(
                     chat_id=update.effective_chat.id,
                     photo=advertisement.flat.plan_telegram_file_id,

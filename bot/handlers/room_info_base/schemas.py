@@ -13,6 +13,7 @@ class RoomInfoBase(BaseModel):
     room_owners: dict[RoomOwnersEnum, int] = dict()
     room_status: Optional[RoomStatusEnum] = None
     room_refusal_status: Optional[RoomRefusalStatusEnum] = None
+    comment: Optional[str] = ""
 
 
 class RoomsInfoBase(BaseModel):

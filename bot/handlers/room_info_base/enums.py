@@ -16,3 +16,4 @@ class RoomInfoBaseConversationSteps(PyEnum):
     CANCEL = 12
     PICK_ROOM_TO_DELETE_OR_EDIT = 13
     CHOOSE_DELETE_OR_EDIT = 14
+    ADD_ROOM_COMMENT = 15

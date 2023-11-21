@@ -7,6 +7,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 from bot.crud import advertisement as advertisement_service
 
 from database.enums import RoomTypeEnum, RoomOccupantsEnum, RoomOwnersEnum, RoomStatusEnum, RoomRefusalStatusEnum
+from bot.utils.resend_old_message import check_and_resend_old_message
 from bot.utils.utils import validate_message_text, delete_message_or_skip, delete_messages
 from bot.schemas.types import AdvertisementBase
 from bot.handlers.rooms.handlers import edit_caption_or_text, get_appropriate_text, get_appropriate_keyboard
@@ -44,6 +45,8 @@ from .enums import RoomInfoBaseConversationSteps
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
 
+    effective_ad_message = await check_and_resend_old_message(update, context)
+
     advertisement_id = int(update.callback_query.data.split('_')[-1])
 
     if advertisement_id == -1:
@@ -61,7 +64,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         advertisement_id=advertisement_id,
         rooms_info_base=rooms_info_base,
         rooms_info_base_message=message,
-        effective_ad_message=update.callback_query.message,
+        effective_ad_message=effective_ad_message,
     )
     context.user_data['rooms_info_data'] = data
 
@@ -161,7 +164,7 @@ async def add_room_area(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return RoomInfoBaseConversationSteps.ADD_ROOM_AREA
 
         data: RoomsInfoConversationData = context.user_data['rooms_info_data']
-        data.room_info_base.room_area = float(update.effective_message.text)
+        data.room_info_base.room_area = float(update.effective_message.text.replace(',', '.'))
 
     message = await update.effective_message.reply_text(
         text=TEXTS[RoomInfoBaseConversationSteps.ADD_ROOM_TYPE],
@@ -186,55 +189,34 @@ async def add_room_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
         data.room_info_base.room_type = RoomTypeEnum[callback_data]
 
     await update.effective_message.reply_text(
-        text=TEXTS[RoomInfoBaseConversationSteps.ADD_ROOM_OCCUPANTS],
-        reply_markup=get_room_occupants_keyboard(data.room_info_base.room_occupants),
+        text=TEXTS[RoomInfoBaseConversationSteps.ADD_ROOM_STATUS],
+        reply_markup=get_room_status_keyboard(),
     )
 
     await delete_messages(context)
     await delete_message_or_skip(update.effective_message)
 
-    return RoomInfoBaseConversationSteps.ADD_ROOM_OCCUPANTS
+    return RoomInfoBaseConversationSteps.ADD_ROOM_STATUS
 
 
-async def add_room_occupants(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def add_room_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
 
     data: RoomsInfoConversationData = context.user_data['rooms_info_data']
-    callback_data = update.callback_query.data.replace(ROOM_OCCUPANTS_CALLBACK_DATA + '_', '')
+    callback_data = update.callback_query.data.replace(ROOM_STATUS_CALLBACK_DATA + '_', '')
 
-    if callback_data in ('done', 'skip'):
-        if callback_data == 'skip':
-            data.room_info_base.room_occupants = {}
+    if callback_data != 'skip':
+        data.room_info_base.room_status = RoomStatusEnum[callback_data]
 
-        message = await update.effective_message.reply_text(
-            text=TEXTS[RoomInfoBaseConversationSteps.ADD_ROOM_OWNERS],
-            reply_markup=get_room_owners_keyboard(data.room_info_base.room_owners),
-        )
-
-        await delete_messages(context)
-        await delete_message_or_skip(update.effective_message)
-
-        context.user_data['messages_to_delete'] = [message]
-
-        return RoomInfoBaseConversationSteps.ADD_ROOM_OWNERS
-
-    occupant = RoomOccupantsEnum[
-        update.callback_query.data.replace(ROOM_OCCUPANTS_CALLBACK_DATA + '_', '')
-    ]
-
-    if occupant in data.room_info_base.room_occupants:
-        data.room_info_base.room_occupants[occupant] += 1
-        if data.room_info_base.room_occupants[occupant] == 4:
-            data.room_info_base.room_occupants[occupant] = 0
-    else:
-        data.room_info_base.room_occupants[occupant] = 1
-
-    await update.effective_message.edit_text(
-        text=TEXTS[RoomInfoBaseConversationSteps.ADD_ROOM_OCCUPANTS],
-        reply_markup=get_room_occupants_keyboard(data.room_info_base.room_occupants),
+    await update.effective_message.reply_text(
+        text=TEXTS[RoomInfoBaseConversationSteps.ADD_ROOM_OWNERS],
+        reply_markup=get_room_owners_keyboard(data.room_info_base.room_owners),
     )
 
-    return RoomInfoBaseConversationSteps.ADD_ROOM_OCCUPANTS
+    await delete_messages(context)
+    await delete_message_or_skip(update.effective_message)
+
+    return RoomInfoBaseConversationSteps.ADD_ROOM_OWNERS
 
 
 async def add_room_owners(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -248,8 +230,8 @@ async def add_room_owners(update: Update, context: ContextTypes.DEFAULT_TYPE):
             data.room_info_base.room_owners = {}
 
         message = await update.effective_message.reply_text(
-            text=TEXTS[RoomInfoBaseConversationSteps.ADD_ROOM_STATUS],
-            reply_markup=get_room_status_keyboard(),
+            text=TEXTS[RoomInfoBaseConversationSteps.ADD_ROOM_REFUSAL_STATUS],
+            reply_markup=get_room_refusal_status_keyboard(),
         )
 
         await delete_messages(context)
@@ -257,7 +239,7 @@ async def add_room_owners(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         context.user_data['messages_to_delete'] = [message]
 
-        return RoomInfoBaseConversationSteps.ADD_ROOM_STATUS
+        return RoomInfoBaseConversationSteps.ADD_ROOM_REFUSAL_STATUS
 
     owner = RoomOwnersEnum[
         update.callback_query.data.replace(ROOM_OWNERS_CALLBACK_DATA + '_', '')
@@ -278,26 +260,6 @@ async def add_room_owners(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return RoomInfoBaseConversationSteps.ADD_ROOM_OWNERS
 
 
-async def add_room_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.answer()
-
-    data: RoomsInfoConversationData = context.user_data['rooms_info_data']
-    callback_data = update.callback_query.data.replace(ROOM_STATUS_CALLBACK_DATA + '_', '')
-
-    if callback_data != 'skip':
-        data.room_info_base.room_status = RoomStatusEnum[callback_data]
-
-    await update.effective_message.reply_text(
-        text=TEXTS[RoomInfoBaseConversationSteps.ADD_ROOM_REFUSAL_STATUS],
-        reply_markup=get_room_refusal_status_keyboard(),
-    )
-
-    await delete_messages(context)
-    await delete_message_or_skip(update.effective_message)
-
-    return RoomInfoBaseConversationSteps.ADD_ROOM_REFUSAL_STATUS
-
-
 async def add_room_refusal_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
 
@@ -306,6 +268,76 @@ async def add_room_refusal_status(update: Update, context: ContextTypes.DEFAULT_
 
     if callback_data != 'skip':
         data.room_info_base.room_refusal_status = RoomRefusalStatusEnum[callback_data]
+
+    message = await update.effective_message.reply_text(
+        text=TEXTS[RoomInfoBaseConversationSteps.ADD_ROOM_COMMENT],
+    )
+
+    await delete_messages(context)
+    await delete_message_or_skip(update.effective_message)
+
+    context.user_data['messages_to_delete'] = [message]
+
+    return RoomInfoBaseConversationSteps.ADD_ROOM_COMMENT
+
+
+async def add_room_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    data: RoomsInfoConversationData = context.user_data['rooms_info_data']
+
+    if update.message.text != '/0':
+        data.room_info_base.comment = update.message.text
+
+    if data.room_info_base.room_status == RoomStatusEnum.NON_LIVING:
+        data.room_info_base.room_occupants = {}
+
+        return await save_changes(update, context)
+
+    message = await update.effective_message.reply_text(
+        text=TEXTS[RoomInfoBaseConversationSteps.ADD_ROOM_OWNERS],
+        reply_markup=get_room_owners_keyboard(data.room_info_base.room_owners),
+    )
+
+    await delete_messages(context)
+    await delete_message_or_skip(update.effective_message)
+
+    context.user_data['messages_to_delete'] = [message]
+
+    return RoomInfoBaseConversationSteps.ADD_ROOM_OWNERS
+
+
+async def add_room_occupants(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.callback_query.answer()
+
+    data: RoomsInfoConversationData = context.user_data['rooms_info_data']
+    callback_data = update.callback_query.data.replace(ROOM_OCCUPANTS_CALLBACK_DATA + '_', '')
+
+    if callback_data in ('done', 'skip'):
+        if callback_data == 'skip':
+            data.room_info_base.room_occupants = {}
+
+        return await save_changes(update, context)
+
+    occupant = RoomOccupantsEnum[
+        update.callback_query.data.replace(ROOM_OCCUPANTS_CALLBACK_DATA + '_', '')
+    ]
+
+    if occupant in data.room_info_base.room_occupants:
+        data.room_info_base.room_occupants[occupant] += 1
+        if data.room_info_base.room_occupants[occupant] == 4:
+            data.room_info_base.room_occupants[occupant] = 0
+    else:
+        data.room_info_base.room_occupants[occupant] = 1
+
+    await update.effective_message.edit_text(
+        text=TEXTS[RoomInfoBaseConversationSteps.ADD_ROOM_OCCUPANTS],
+        reply_markup=get_room_occupants_keyboard(data.room_info_base.room_occupants),
+    )
+
+    return RoomInfoBaseConversationSteps.ADD_ROOM_OCCUPANTS
+
+
+async def save_changes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    data: RoomsInfoConversationData = context.user_data['rooms_info_data']
 
     data.rooms_info_base.rooms.append(data.room_info_base)
 

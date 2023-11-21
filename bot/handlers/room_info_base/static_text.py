@@ -1,6 +1,6 @@
 from .enums import RoomInfoBaseConversationSteps
 
-ROOM_TEMPLATE = '{number}/{area}-{type}({occupants})-{owners}-{status}-{refusal_status})'
+ROOM_TEMPLATE = '{number}/{area}-{status}({owners} ={refusal_status}; {comment}) {occupants}'
 
 ROOMS_INFO_TEXT = 'Сведения о комнатах:\n\n'
 
@@ -17,4 +17,5 @@ TEXTS = {
     RoomInfoBaseConversationSteps.CANCEL: 'Отмена',
     RoomInfoBaseConversationSteps.START_EDIT_ROOM: 'Редактировать',
     RoomInfoBaseConversationSteps.CHOOSE_DELETE_OR_EDIT: 'Выберите действие:',
+    RoomInfoBaseConversationSteps.ADD_ROOM_COMMENT: 'Введите комментарий в свободной форме (пропустить -> /0):',
 }

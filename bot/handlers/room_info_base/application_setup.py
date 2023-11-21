@@ -85,6 +85,16 @@ def setup(application: Application):
                     ROOM_REFUSAL_STATUS_CALLBACK_DATA,
                 ),
             ],
+            RoomInfoBaseConversationSteps.ADD_ROOM_COMMENT: [
+                MessageHandler(
+                    filters.Text() & ~filters.Command(),
+                    handlers.add_room_comment,
+                ),
+                CommandHandler(
+                    '0',
+                    handlers.add_room_comment,
+                ),
+            ],
             RoomInfoBaseConversationSteps.PICK_ROOM_TO_DELETE_OR_EDIT: [
                 CallbackQueryHandler(
                     handlers.pick_room_to_edit_or_delete,

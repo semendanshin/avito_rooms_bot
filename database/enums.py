@@ -44,12 +44,12 @@ class RoomOwnersEnum(pyEnum):
 
 
 class RoomRefusalStatusEnum(pyEnum):
-    NOTARY = 'НОТ'
-    WRITTEN = 'ПИС'
-    NO = 'нет'
     ROOM_ON_DIRECT_SALE = 'ПП'
     ROOM_ON_CROSS_SALE = 'ВСТ'
     OTHER_ROOM_OF_SELLER = 'СОБ'
+    WRITTEN = 'ПИС'
+    NOTARY = 'НОТ'
+    NO = 'нет'
 
 
 class RoomOccupantsEnum(pyEnum):

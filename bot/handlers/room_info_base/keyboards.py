@@ -14,7 +14,7 @@ SAVE_CALLBACK_DATA = 'rooms_info_save'
 
 ADD_ROOM_TEXT = 'Добавить'
 EDIT_ROOM_TEXT = 'Изм'
-SAVE_TEXT = 'ОК'
+SAVE_TEXT = 'Готово'
 
 
 def get_rooms_info_base_keyboard() -> InlineKeyboardMarkup:
@@ -22,10 +22,8 @@ def get_rooms_info_base_keyboard() -> InlineKeyboardMarkup:
         [
             [
                 InlineKeyboardButton(EDIT_ROOM_TEXT, callback_data=EDIT_ROOM_CALLBACK_DATA),
-                InlineKeyboardButton(ADD_ROOM_TEXT, callback_data=ADD_ROOM_CALLBACK_DATA),
-            ],
-            [
                 InlineKeyboardButton(SAVE_TEXT, callback_data=SAVE_CALLBACK_DATA),
+                InlineKeyboardButton(ADD_ROOM_TEXT, callback_data=ADD_ROOM_CALLBACK_DATA),
             ],
         ]
     )
@@ -35,7 +33,7 @@ ROOM_TYPE_CALLBACK_DATA = 'rooms_info_room_type'
 
 
 def get_room_type_keyboard() -> InlineKeyboardMarkup:
-    return get_enum_options_keyboard(RoomTypeEnum, ROOM_TYPE_CALLBACK_DATA)
+    return get_enum_options_keyboard(RoomTypeEnum, ROOM_TYPE_CALLBACK_DATA, row_width=3)
 
 
 def get_keyboard_from_dict_of_enums(enum: Type[PyEnum], dictionary: dict[Type[PyEnum], int], callback_prefix: str)\
@@ -59,9 +57,6 @@ def get_keyboard_from_dict_of_enums(enum: Type[PyEnum], dictionary: dict[Type[Py
             [
                 InlineKeyboardButton('Готово', callback_data=f'{callback_prefix}_done'),
             ],
-            # [
-            #     InlineKeyboardButton('Пропустить', callback_data=f'{callback_prefix}_skip'),
-            # ]
         ]
     )
     return InlineKeyboardMarkup(keyboard)
@@ -91,14 +86,14 @@ ROOM_STATUS_CALLBACK_DATA = 'rooms_info_room_status'
 
 
 def get_room_status_keyboard() -> InlineKeyboardMarkup:
-    return get_enum_options_keyboard(RoomStatusEnum, ROOM_STATUS_CALLBACK_DATA)
+    return get_enum_options_keyboard(RoomStatusEnum, ROOM_STATUS_CALLBACK_DATA, row_width=3)
 
 
 ROOM_REFUSAL_STATUS_CALLBACK_DATA = 'rooms_info_room_refusal_status'
 
 
 def get_room_refusal_status_keyboard() -> InlineKeyboardMarkup:
-    return get_enum_options_keyboard(RoomRefusalStatusEnum, ROOM_REFUSAL_STATUS_CALLBACK_DATA)
+    return get_enum_options_keyboard(RoomRefusalStatusEnum, ROOM_REFUSAL_STATUS_CALLBACK_DATA, row_width=3)
 
 
 PICK_ROOM_TO_EDIT_CALLBACK_DATA = 'rooms_info_pick_room_to_edit'

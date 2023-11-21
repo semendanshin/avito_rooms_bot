@@ -130,6 +130,7 @@ class AdvertisementBase(BaseModel):
     flat: Optional[FlatBase | Flat] = None
 
     added_by: Optional[User] = None
+    added_at: Optional[datetime] = None
 
 
 class AdvertisementCreate(AdvertisementBase):
