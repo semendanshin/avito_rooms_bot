@@ -138,15 +138,6 @@ def get_advertisement_base() -> AdvertisementBase:
     return advertisement_base
 
 
-async def refresh_advertisement(session: AsyncSession, advertisement: Advertisement) -> Advertisement:
-    await session.refresh(advertisement, ['flat'])
-    await session.refresh(advertisement, ['added_by'])
-    await session.refresh(advertisement.flat, ['house'])
-    await session.refresh(advertisement.flat, ['rooms'])
-    await session.refresh(advertisement.flat.house, ['flats'])
-    return advertisement
-
-
 async def create_advertisement(session: AsyncSession, advertisement: AdvertisementBase) -> Advertisement:
     if advertisement.flat.house:
         house = await house_service.get_house(session, advertisement.flat.house.cadastral_number)
@@ -180,4 +171,4 @@ async def create_advertisement(session: AsyncSession, advertisement: Advertiseme
         await session.rollback()
         raise e
 
-    return await refresh_advertisement(session, advertisement)
+    return await advertisement_service.refresh_advertisement(session, advertisement)

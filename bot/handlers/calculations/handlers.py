@@ -6,8 +6,6 @@ from bot.utils.resend_old_message import check_and_resend_old_message
 
 from bot.crud import advertisement as advertisement_service
 
-from bot.handlers.rooms.manage_data import refresh_advertisement
-
 from .manage_data import CalculateRoomDialogStates
 from .static_text import CALCULATING_RESULT_TEMPLATE
 from .keyboards import get_calculate_keyboard
@@ -111,7 +109,7 @@ async def process_calculation(update: Update, context: ContextTypes.DEFAULT_TYPE
         raise Exception('Session is not in context')
 
     advertisement = await advertisement_service.get_advertisement(session, data.get('ad_id'))
-    advertisement = await refresh_advertisement(session, advertisement)
+    advertisement = await advertisement_service.refresh_advertisement(session, advertisement)
 
     # Цена кв-ры и комиссия АН: (165*112,6)=>18579*0,1=1858
     # Маржа ЖкОП минус комиссия на 1м2 (МБК на1м2): (112.6-86.5)=>26.1*165=>4306-1858=>2448/86,5=>28

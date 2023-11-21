@@ -8,7 +8,7 @@ from bot.utils.utils import delete_messages, delete_message_or_skip
 from bot.utils.resend_old_message import check_and_resend_old_message
 
 from bot.handlers.rooms.handlers import get_appropriate_text
-from bot.handlers.rooms.manage_data import fill_user_fio_template, refresh_advertisement
+from bot.handlers.rooms.manage_data import fill_user_fio_template
 
 from database.enums import AdvertisementStatus, UserRole
 
@@ -312,7 +312,7 @@ async def confirm_attachment(update: Update, context: ContextTypes.DEFAULT_TYPE)
             return ConversationHandler.END
 
         advertisement = await advertisement_service.get_advertisement(session, advertisement_id)
-        advertisement = await refresh_advertisement(session, advertisement)
+        advertisement = await advertisement_service.refresh_advertisement(session, advertisement)
 
         advertisement.pinned_dispatcher_id = dispatcher.id
         advertisement.pinned_agent_id = agent.id

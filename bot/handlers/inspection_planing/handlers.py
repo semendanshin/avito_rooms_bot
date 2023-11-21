@@ -15,7 +15,7 @@ from .static_text import INSPECTION_PLANING_TEMPLATE
 from .manage_data import InspectionPlaningConversationSteps, InspectionTimePeriods
 from .keyboards import get_time_periods_keyboard, get_confirm_keyboard, get_inspection_review_keyboard
 
-from bot.handlers.rooms.manage_data import fill_first_room_template, refresh_advertisement
+from bot.handlers.rooms.manage_data import fill_first_room_template
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import date
@@ -147,7 +147,7 @@ async def save_meting_tip(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session,
         context.user_data["inspection"].advertisement_id
     )
-    advertisement = await refresh_advertisement(session, advertisement)
+    advertisement = await advertisement_service.refresh_advertisement(session, advertisement)
 
     text = INSPECTION_PLANING_TEMPLATE.format(
         address=advertisement.flat.house.street_name + ' ' + advertisement.flat.house.number + ' кв. ' + advertisement.flat.flat_number,
@@ -190,7 +190,7 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     session.add(inspection)
 
     advertisement = await advertisement_service.get_advertisement(session, inspection.advertisement_id)
-    advertisement = await refresh_advertisement(session, advertisement)
+    advertisement = await advertisement_service.refresh_advertisement(session, advertisement)
 
     advertisement.status = AdvertisementStatus.ASSIGNED
 

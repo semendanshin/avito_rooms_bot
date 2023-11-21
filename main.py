@@ -23,6 +23,7 @@ from bot.handlers.calculations import handlers as calculations_handlers
 from bot.handlers.review import handlers as review_handlers
 from bot.handlers.edit_advertisement import handlers as edit_advertisement_handlers
 from bot.handlers.admin_add_room import handlers as admin_add_room_handlers
+from bot.handlers.room_info_base.application_setup import setup as room_info_base_setup
 
 from bot.handlers.onboarding.static_text import (
     ADD_ROOM_KEYBOARD_TEXT,
@@ -544,6 +545,8 @@ def main():
             name='admin_add_room_handler',
         )
     )
+
+    room_info_base_setup(app)
 
     app.add_handler(
         CallbackQueryHandler(

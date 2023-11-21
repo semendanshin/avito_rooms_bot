@@ -69,3 +69,12 @@ async def update_advertisement(session: AsyncSession, advertisement_id: int, new
         setattr(advertisement, field, value)
     await session.commit()
     return advertisement
+
+
+async def refresh_advertisement(session: AsyncSession, advertisement: Advertisement) -> Advertisement:
+    await session.refresh(advertisement, ['flat'])
+    await session.refresh(advertisement, ['added_by'])
+    await session.refresh(advertisement.flat, ['house'])
+    await session.refresh(advertisement.flat, ['rooms'])
+    await session.refresh(advertisement.flat.house, ['flats'])
+    return advertisement

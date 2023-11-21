@@ -1,7 +1,7 @@
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 from database.enums import (HouseEntranceTypeHumanReadable, ToiletTypeHumanReadable, ViewTypeHumanReadable,
                             AdvertisementStatus)
-from bot.utils.utils import structure_buttons
+from bot.utils.keyboards import structure_buttons
 
 active_emoji = '📝'
 filled_emoji = '✅'
@@ -28,10 +28,17 @@ def get_ad_editing_keyboard(
                 'Телефон',
                 callback_data=f'change_phone_{advertisement_id}',
             ),
+        ],
+        [
             InlineKeyboardButton(
                 (active_emoji if info_is_active else filled_emoji if info_is_filled else '') +
                 'Инфо',
                 callback_data=f'change_info_{advertisement_id}',
+            ),
+            InlineKeyboardButton(
+                (active_emoji if info_is_active else filled_emoji if info_is_filled else '') +
+                'Комнаты',
+                callback_data=f'change_rooms_{advertisement_id}',
             ),
         ],
         [
@@ -55,9 +62,15 @@ def get_send_or_edit_keyboard(advertisement_id: int | str) -> InlineKeyboardMark
                 filled_emoji + 'Телефон',
                 callback_data=f'change_phone_{advertisement_id}',
             ),
+        ],
+        [
             InlineKeyboardButton(
                 filled_emoji + 'Инфо',
                 callback_data=f'change_info_{advertisement_id}',
+            ),
+            InlineKeyboardButton(
+                filled_emoji + 'Комнаты',
+                callback_data=f'change_rooms_{advertisement_id}',
             ),
         ],
         [

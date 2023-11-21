@@ -1,5 +1,5 @@
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
-from bot.utils.utils import structure_buttons
+from bot.utils.keyboards import structure_buttons
 from bot.handlers.rooms.manage_data import fill_user_fio_template
 from database.models import User
 
@@ -28,10 +28,16 @@ def get_plan_inspection_keyboard(
                 'Телефон',
                 callback_data=f'edit_phone_{advertisement_id}',
             ),
+        ],
+        [
             InlineKeyboardButton(
                 (active_emoji if info_is_active else filled_emoji if info_is_filled else '') +
                 'Инфо',
                 callback_data=f'edit_info_{advertisement_id}',
+            ),
+            InlineKeyboardButton(
+                'Комнаты',
+                callback_data=f'change_rooms_{advertisement_id}',
             ),
         ],
         [

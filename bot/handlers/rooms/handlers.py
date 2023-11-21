@@ -825,8 +825,12 @@ async def change_rooms_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     advertisement = context.user_data[update.effective_message.id]
 
+    # tmp fix
     advertisement.flat.flat_entrance_type = FlatEntranceType.ONE
     advertisement.added_by = context.database_user
+    for el in advertisement.flat.rooms:
+        el.comment = ''
+
     advertisement = await create_advertisement(context.session, advertisement)
 
     text = get_appropriate_text(advertisement)

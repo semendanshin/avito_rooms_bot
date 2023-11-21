@@ -1,0 +1,18 @@
+from enum import Enum as PyEnum
+
+
+class RoomInfoBaseConversationSteps(PyEnum):
+    ADD_ROOM_NUMBER = 1
+    ADD_ROOM_AREA = 2
+    ADD_ROOM_TYPE = 3
+    ADD_ROOM_OCCUPANTS = 4
+    ADD_ROOM_OWNERS = 5
+    ADD_ROOM_STATUS = 6
+    ADD_ROOM_REFUSAL_STATUS = 7
+    SHOW_ROOMS_TO_EDIT = 8
+    START_EDIT_ROOM = 9
+    DELETE_ROOM = 10
+    SAVE = 11
+    CANCEL = 12
+    PICK_ROOM_TO_DELETE_OR_EDIT = 13
+    CHOOSE_DELETE_OR_EDIT = 14

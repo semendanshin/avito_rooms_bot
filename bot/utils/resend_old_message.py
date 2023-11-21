@@ -9,7 +9,7 @@ from bot.crud import advertisement as advertisement_service
 from bot.crud import inspection as inspection_service
 
 from bot.handlers.rooms.keyboards import get_review_keyboard
-from bot.handlers.rooms.manage_data import fill_first_room_template, refresh_advertisement
+from bot.handlers.rooms.manage_data import fill_first_room_template
 
 from bot.handlers.review.keyboards import get_plan_inspection_keyboard
 
@@ -49,7 +49,7 @@ async def resend_old_message(update: Update, context: ContextTypes) -> Message:
         context.user_data[message.id] = advertisement
     else:
         advertisement = await advertisement_service.get_advertisement(context.session, advertisement_id)
-        advertisement = await refresh_advertisement(context.session, advertisement)
+        advertisement = await advertisement_service.refresh_advertisement(context.session, advertisement)
 
         if advertisement:
             text = get_appropriate_text(advertisement)

@@ -3,7 +3,7 @@ import pprint
 from telegram import Update
 from telegram.ext import ConversationHandler, ContextTypes
 
-from bot.handlers.rooms.manage_data import AddRoomDialogStates, refresh_advertisement
+from bot.handlers.rooms.manage_data import AddRoomDialogStates
 from bot.handlers.rooms.handlers import (get_appropriate_text,
                                          update_message_and_delete_messages, edit_caption_or_text)
 from bot.handlers.review.keyboards import get_plan_inspection_keyboard
@@ -65,7 +65,7 @@ async def edit_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
         raise Exception('Session is not in context')
 
     advertisement = await advertisement_service.get_advertisement(session, advertisement_id)
-    await refresh_advertisement(session, advertisement)
+    advertisement = await advertisement_service.refresh_advertisement(session, advertisement)
 
     if not advertisement:
         await update.effective_message.reply_text(
@@ -158,7 +158,7 @@ async def edit_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ConversationHandler.END
 
-    await refresh_advertisement(context.session, advertisement)
+    advertisement = await advertisement_service.refresh_advertisement(context.session, advertisement)
 
     advertisement.contact_phone = phone
     advertisement.contact_name = name
@@ -206,7 +206,7 @@ async def start_edit_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data["messages_to_delete"] = [message]
     advertisement = await advertisement_service.get_advertisement(context.session, advertisement_id)
-    await refresh_advertisement(context.session, advertisement)
+    advertisement = await advertisement_service.refresh_advertisement(context.session, advertisement)
     context.user_data["effective_advertisement_id"] = advertisement_id
     context.user_data["effective_message"] = update.effective_message
     context.user_data["data_to_gather"] = DataToGather()
@@ -299,7 +299,7 @@ async def edit_elevator_nearby(update: Update, context: ContextTypes.DEFAULT_TYP
 
     advertisement_id = context.user_data.get("effective_advertisement_id")
     advertisement = await advertisement_service.get_advertisement(context.session, advertisement_id)
-    await refresh_advertisement(context.session, advertisement)
+    advertisement = await advertisement_service.refresh_advertisement(context.session, advertisement)
 
     if advertisement.flat.flour == 2:
         await update.effective_message.reply_text(
@@ -434,7 +434,7 @@ async def edit_rooms_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         advertisement_id = context.user_data.get("effective_advertisement_id")
         advertisement = await advertisement_service.get_advertisement(context.session, advertisement_id)
-        await refresh_advertisement(context.session, advertisement)
+        advertisement = await advertisement_service.refresh_advertisement(context.session, advertisement)
 
         if len(matches) != advertisement.flat.number_of_rooms:
             message = await update.message.reply_text(
@@ -479,7 +479,7 @@ async def edit_rooms_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     advertisement_id = context.user_data.get("effective_advertisement_id")
     advertisement = await advertisement_service.get_advertisement(context.session, advertisement_id)
-    await refresh_advertisement(context.session, advertisement)
+    advertisement = await advertisement_service.refresh_advertisement(context.session, advertisement)
 
     # advertisement.flat.flat_number = data.flat_number if data.flat_number is not None else advertisement.flat.flat_number
     # advertisement.flat_cadastral_number = data.cadastral_number if data.cadastral_number is not None else advertisement.flat.cadastral_number
@@ -505,7 +505,7 @@ async def edit_rooms_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await delete_message_or_skip(update.effective_message)
 
     advertisement = await advertisement_service.get_advertisement(context.session, advertisement.id)
-    await refresh_advertisement(context.session, advertisement)
+    advertisement = await advertisement_service.refresh_advertisement(context.session, advertisement)
 
     message = await edit_caption_or_text(
         context.user_data["effective_message"],
