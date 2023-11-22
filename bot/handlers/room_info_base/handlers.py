@@ -293,8 +293,8 @@ async def add_room_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await save_changes(update, context)
 
     message = await update.effective_message.reply_text(
-        text=TEXTS[RoomInfoBaseConversationSteps.ADD_ROOM_OWNERS],
-        reply_markup=get_room_owners_keyboard(data.room_info_base.room_owners),
+        text=TEXTS[RoomInfoBaseConversationSteps.ADD_ROOM_OCCUPANTS],
+        reply_markup=get_room_occupants_keyboard(data.room_info_base.room_occupants),
     )
 
     await delete_messages(context)
@@ -302,7 +302,7 @@ async def add_room_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data['messages_to_delete'] = [message]
 
-    return RoomInfoBaseConversationSteps.ADD_ROOM_OWNERS
+    return RoomInfoBaseConversationSteps.ADD_ROOM_OCCUPANTS
 
 
 async def add_room_occupants(update: Update, context: ContextTypes.DEFAULT_TYPE):
