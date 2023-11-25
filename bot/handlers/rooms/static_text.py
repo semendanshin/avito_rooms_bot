@@ -13,11 +13,13 @@ DATA_FROM_ADVERTISEMENT_TEMPLATE = """
 Комната {room_area} м² в {number_of_rooms_in_flat}-к. кв, {flour}/{flours_in_building} эт.
 {address}
 {price}тр({price_per_meter}тр/м2)
+<a href="{url}">АВИТО</a>
 """
 
 PARSED_ROOM_TEMPLATE = """<b>Комната {room_area} м² в {number_of_rooms_in_flat}-к. кв, {flour}/{flours_in_building} эт.</b>
 {address}
-{price} тр"""
+{price} тр
+<a href="{url}">АВИТО</a>"""
 CONTACT_INFO_TEMPLATE = """{contact_phone} {contact_status}-{contact_name}"""
 ADDITIONAL_INFO = """
 <b>Номер квартиры:</b> {flat_number}

@@ -102,9 +102,9 @@ class ViewType(pyEnum):
 
 
 class ViewTypeHumanReadable(pyEnum):
-    STREET = 'Вид на улицу'
-    YARD = 'Вид во двор'
-    PARK = 'Вид на парк'
+    STREET = 'Улица'
+    YARD = 'Двор'
+    PARK = 'Видовая'
 
 
 class InspectionStatus(pyEnum):

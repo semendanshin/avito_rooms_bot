@@ -76,7 +76,6 @@ def get_appropriate_text(advertisement: AdvertisementBase) -> str:
                 advertisement.flat.area,
                 advertisement.flat.under_room_is_living is not None,
                 advertisement.flat.flat_height,
-                advertisement.flat.house.is_historical is not None,
                 advertisement.flat.elevator_nearby is not None,
                 advertisement.flat.house_entrance_type,
                 advertisement.flat.view_type,

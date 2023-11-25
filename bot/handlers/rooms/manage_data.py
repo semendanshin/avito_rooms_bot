@@ -39,6 +39,7 @@ def fill_data_from_advertisement_template(advertisement: AdvertisementBase) -> s
         address=advertisement.flat.house.street_name + ' ' + advertisement.flat.house.number,
         price=advertisement.room_price // 1000,
         price_per_meter=int(advertisement.room_price / advertisement.room_area // 1000),
+        url=advertisement.url,
     )
     text += '\n' + advertisement.description
     return text
@@ -52,6 +53,7 @@ def fill_parsed_room_template(advertisement: AdvertisementBase) -> str:
         flours_in_building=advertisement.flat.house.number_of_flours,
         address=advertisement.flat.house.street_name + ' ' + advertisement.flat.house.number,
         price=advertisement.room_price // 1000,
+        url=advertisement.url,
     )
 
     if advertisement.contact_phone:
