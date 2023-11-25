@@ -1,6 +1,8 @@
 from enum import Enum
 from bot.crud import advertisement as advertisement_service, room as room_service
+from database.enums import RoomTypeEnum
 from ...crud import house as house_service, flat as flat_service
+from bot.handlers.room_info_base.manage_data import fill_rooms_info_base_template
 from bot.schemas.types import AdvertisementBase, RoomBase, FlatBase, HouseBase
 from bot.schemas.types import AdvertisementCreate, RoomCreate, FlatCreate, HouseCreate
 from database.models import Advertisement, User, House, Room
@@ -76,8 +78,10 @@ def fill_user_fio_template(user: User) -> str:
 
 
 def fill_first_room_template(advertisement: AdvertisementBase) -> str:
-    living_area = round(sum([room.area for room in advertisement.flat.rooms]), 1) if advertisement.flat.rooms else ''
-    living_area_percent = int(living_area / advertisement.flat.area * 100) if advertisement.flat.area and living_area else ''
+    living_area = round(sum([room.area for room in advertisement.flat.rooms if room.type == RoomTypeEnum.LIVING]), 1) \
+        if advertisement.flat.rooms else ''
+    living_area_percent = int(living_area / advertisement.flat.area * 100) \
+        if advertisement.flat.area and living_area else ''
 
     price_per_meter = int(advertisement.room_price / advertisement.room_area) // 1000 if advertisement.flat.area else ''
     price = advertisement.room_price // 1000
@@ -89,20 +93,17 @@ def fill_first_room_template(advertisement: AdvertisementBase) -> str:
     else:
         room_under = ''
 
-    rooms_info = '\n'.join(
-        [
-            '{number_on_plan}/{area}-{status}({owners} {occupants} {refusal_status} {comment})'.format(
-                number_on_plan=room.number_on_plan,
-                area=room.area,
-                status=room.status.value if room.status else '',
-                owners=' '.join(f'{room.owners.count(owner)}{owner.value}' for owner in set(room.owners)),
-                occupants=' '.join(f'{room.occupants.count(occupant)}{occupant.value}' for occupant in set(room.occupants)),
-                refusal_status=room.refusal_status.value if room.refusal_status else '',
-                comment=room.comment if room.comment else '',
-            )
-            for room in advertisement.flat.rooms
-        ]
-    ) if advertisement.flat.rooms else ''
+    room_info_template = '{number}/{area}-{status}({owners} ={refusal_status}; {comment}) {occupants}'
+    rooms_info = '\n'.join([room_info_template.format(
+        number=room.number_on_plan,
+        area=room.area,
+        type=room.type.value if room.type else '',
+        owners=' '.join([f'{room.owners.count(owner)}{owner.value}' for owner in set(room.owners)]),
+        occupants=' '.join([f'{room.occupants.count(occupant)}{occupant.value}' for occupant in set(room.occupants)]),
+        status=room.status.value if room.status else '',
+        refusal_status=room.refusal_status.value if room.refusal_status else '',
+        comment=room.comment if room.comment else '',
+    ) for room in advertisement.flat.rooms])
 
     windows_type = ', '.join([el.value for el in advertisement.flat.view_type]) if advertisement.flat.view_type else ''
     is_historical = 'памятник' if advertisement.flat.house.is_historical else ''

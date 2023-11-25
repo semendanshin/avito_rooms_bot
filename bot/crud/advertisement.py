@@ -1,7 +1,7 @@
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import Advertisement
-from bot.schemas.types import AdvertisementCreate
+from bot.schemas.types import AdvertisementCreate, AdvertisementResponse
 from bot.schemas.types import AdvertisementStatus
 from typing import Optional
 
@@ -78,3 +78,7 @@ async def refresh_advertisement(session: AsyncSession, advertisement: Advertisem
     await session.refresh(advertisement.flat, ['rooms'])
     await session.refresh(advertisement.flat.house, ['flats'])
     return advertisement
+
+
+def convert_advertisement_to_advertisement_base(advertisement: Advertisement) -> AdvertisementResponse:
+    return AdvertisementResponse.model_validate(advertisement)

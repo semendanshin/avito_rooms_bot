@@ -1,16 +1,15 @@
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
-from bot.utils.utils import validate_message_text, delete_messages
+from bot.utils.utils import validate_message_text, delete_messages, delete_message_or_skip
 from bot.utils.resend_old_message import check_and_resend_old_message
 
 from bot.crud import advertisement as advertisement_service
+from database.enums import RoomRefusalStatusEnum
 
 from .manage_data import CalculateRoomDialogStates
 from .static_text import CALCULATING_RESULT_TEMPLATE
 from .keyboards import get_calculate_keyboard
-
-import asyncio
 
 
 async def start_calculate_room(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -108,8 +107,9 @@ async def process_calculation(update: Update, context: ContextTypes.DEFAULT_TYPE
     except AttributeError:
         raise Exception('Session is not in context')
 
-    advertisement = await advertisement_service.get_advertisement(session, data.get('ad_id'))
-    advertisement = await advertisement_service.refresh_advertisement(session, advertisement)
+    advertisement_orm = await advertisement_service.get_advertisement(session, data.get('ad_id'))
+    advertisement_orm = await advertisement_service.refresh_advertisement(session, advertisement_orm)
+    advertisement = advertisement_service.convert_advertisement_to_advertisement_base(advertisement_orm)
 
     # Цена кв-ры и комиссия АН: (165*112,6)=>18579*0,1=1858
     # Маржа ЖкОП минус комиссия на 1м2 (МБК на1м2): (112.6-86.5)=>26.1*165=>4306-1858=>2448/86,5=>28
@@ -141,28 +141,28 @@ async def process_calculation(update: Update, context: ContextTypes.DEFAULT_TYPE
     room_info_template = '{room_number}/{room_area}-{status}={refusal} -> Д={part_price}'
     room_for_sale_addition = ' -- КОМ({price_per_meter_for_sell})={room_price} -- {living_period}мес={profit_year_percent}%'
 
-    for el in advertisement.flat.rooms:
+    for room in advertisement.flat.rooms:
         part_price = round(
-            price_per_meter_for_buy * advertisement.flat.area * el.area / total_living_area * (
+            price_per_meter_for_buy * advertisement.flat.area * room.area / total_living_area * (
                         1 - agent_commission / 100),
         )
         rooms_info_text += room_info_template.format(
-            room_number=el.number_on_plan,
-            room_area=el.area,
-            # description=el.description,
-            status='',
-            refusal='',
+            room_number=room.number_on_plan,
+            room_area=room.area,
+            description=room.comment,
+            status=room.status.value,
+            refusal=room.refusal_status.value if room.refusal_status else '',
             part_price=part_price
         )
-        if 'ПП' in el.comment or 'ВСТ' in el.comment:
+        if room.refusal_status in [RoomRefusalStatusEnum.ROOM_ON_CROSS_SALE, RoomRefusalStatusEnum.ROOM_ON_DIRECT_SALE]:
             rooms_info_text += room_for_sale_addition.format(
                 price_per_meter_for_sell=int(price_per_meter_for_sell),
                 living_period=int(living_period),
                 profit_year_percent=round(
-                    (part_price - price_per_meter_for_sell * el.area) / (price_per_meter_for_sell * el.area) * 100 * (
+                    (part_price - price_per_meter_for_sell * room.area) / (price_per_meter_for_sell * room.area) * 100 * (
                                 12 / living_period),
                 ),
-                room_price=round(el.area * price_per_meter_for_sell)
+                room_price=round(room.area * price_per_meter_for_sell)
             )
         rooms_info_text += '\n'
 
@@ -207,11 +207,6 @@ async def calculate_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cancel_calculating(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = await update.effective_message.reply_text(
-        'Отмена расчета (данные не сохранены)',
-    )
     await delete_messages(context)
-    await update.message.delete()
-    await asyncio.sleep(5)
-    await message.delete()
+    await delete_message_or_skip(update.effective_message)
     return ConversationHandler.END

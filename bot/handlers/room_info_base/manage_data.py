@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from database.enums import RoomTypeEnum
 from database.models import Room
 
 from bot.crud import advertisement as advertisement_service
@@ -48,7 +49,12 @@ def fill_room_info_base_template(room_info_base: RoomInfoBase) -> str:
 
 
 def check_rooms_info_base_filled(rooms_info_base: RoomsInfoBase) -> bool:
-    return all([check_room_info_base_filled(room) for room in rooms_info_base.rooms]) and rooms_info_base.rooms != []
+    return all(
+        [
+            check_room_info_base_filled(room)
+            for room in filter(lambda room: room.room_type == RoomTypeEnum.LIVING, rooms_info_base.rooms)
+        ]
+    ) and rooms_info_base.rooms != []
 
 
 def check_room_info_base_filled(room_info_base: RoomInfoBase) -> bool:
@@ -56,8 +62,9 @@ def check_room_info_base_filled(room_info_base: RoomInfoBase) -> bool:
             room_info_base.room_number is not None and
             room_info_base.room_area is not None and
             room_info_base.room_type is not None and
-            room_info_base.room_occupants != [] and
-            room_info_base.room_owners != [] and
+            (any(room_info_base.room_occupants[key] for key in room_info_base.room_occupants.keys())
+             if room_info_base.room_status == RoomTypeEnum.LIVING else True) and
+            any(room_info_base.room_owners[key] for key in room_info_base.room_owners.keys()) and
             room_info_base.room_status is not None and
             room_info_base.room_refusal_status is not None
     )
