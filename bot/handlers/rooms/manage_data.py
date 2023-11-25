@@ -103,7 +103,7 @@ def fill_first_room_template(advertisement: AdvertisementBase) -> str:
         status=room.status.value if room.status else '',
         refusal_status=room.refusal_status.value if room.refusal_status else '',
         comment=room.comment if room.comment else '',
-    ) for room in advertisement.flat.rooms])
+    ) for room in filter(lambda room: room.type == RoomTypeEnum.LIVING, advertisement.flat.rooms)])
 
     windows_type = ', '.join([el.value for el in advertisement.flat.view_type]) if advertisement.flat.view_type else ''
     is_historical = 'памятник' if advertisement.flat.house.is_historical else ''
